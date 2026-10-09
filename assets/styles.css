@@ -309,7 +309,7 @@ h1 {
 .cnt__ctl button[data-d="1"] { background: var(--signal); border-color: var(--signal-hi); color: #fff; }
 .cnt__ctl button[data-d="1"]:hover { background: var(--signal-hi); }
 .cnt__ctl button:active { border-bottom-width: 2px; transform: translateY(3px); }
-.cnt__ctl button:disabled { opacity: .35; cursor: default; transform: none; border-bottom-width: 5px; }
+.cnt__ctl button:disabled, .cnt__ctl button[aria-disabled="true"] { opacity: .35; cursor: default; transform: none; border-bottom-width: 5px; }
 .cnt__n { min-width: 58px; text-align: center; font: 700 34px/1 var(--f-display); font-variant-numeric: tabular-nums; }
 .cnt__n small { display: block; margin-top: 2px; font: 500 12px var(--f-body); color: var(--muted); }
 @container (max-width: 340px) {

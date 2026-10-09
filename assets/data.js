@@ -27,7 +27,7 @@ const PRICE = {
   labor: { name: 'Монтаж камер', price: 12000 },
   setup: { name: 'Пусконаладка и настройка телефона', price: 15000 },
   gbPerCamDay: 30, // 4 Мп, H.265, запас на движение
-  maxCams: 16,
+  maxPerZone: 16, // не больше 16 уличных и 16 внутренних камер; больше — считаем вручную
 };
 
 // План: x/y — точка крепления, a — куда смотрит камера (градусы, 0 = вправо, 90 = вниз).
@@ -178,8 +178,11 @@ function estimate(s) {
   add(eq, PRICE.camOut.name, c.out, 'шт', PRICE.camOut.price);
   add(eq, PRICE.camIn.name, c.inn, 'шт', PRICE.camIn.price);
 
-  const nvr = PRICE.nvr.find((r) => r.ch >= c.total) || PRICE.nvr[PRICE.nvr.length - 1];
-  add(eq, nvr.name, 1, 'шт', nvr.price);
+  // камер больше, чем каналов у самого большого регистратора, — ставим несколько больших
+  const top = PRICE.nvr[PRICE.nvr.length - 1];
+  const nvr = PRICE.nvr.find((r) => r.ch >= c.total);
+  if (nvr) add(eq, nvr.name, 1, 'шт', nvr.price);
+  else add(eq, top.name, Math.ceil(c.total / top.ch), 'шт', top.price);
 
   const needTb = (c.total * s.days * PRICE.gbPerCamDay) / 1000;
   const disk = PRICE.hdd.find((d) => d.tb >= needTb);

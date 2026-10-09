@@ -185,7 +185,7 @@ $('#stepBody').addEventListener('click', (e) => {
   const b = e.target.closest('.stepper button');
   if (b) {
     const key = b.closest('.stepper').dataset.key, d = +b.dataset.d;
-    if (d > 0 && !canAdd()) return;
+    if (d > 0 && !canAdd(key === 'extraOut' ? 'out' : 'in')) return;
     state[key] = Math.max(0, state[key] + d);
     b.closest('.stepper').querySelector('output').textContent = state[key];
     renderSmeta();
@@ -218,7 +218,7 @@ function zoneOrder(plan, zone) {
 function addCam(zone, d) {
   const on = state.on[state.plan], order = zoneOrder(state.plan, zone), ex = EXTRA[zone];
   if (d > 0) {
-    if (!canAdd()) return false;
+    if (!canAdd(zone)) return false;
     const free = order.find((i) => !on.has(i));
     free === undefined ? state[ex]++ : on.add(free);
     return true;
@@ -250,7 +250,7 @@ function renderZones() {
       <div class="cnt__ctl" role="group" aria-labelledby="zone-${zone}">
         <button type="button" data-zone="${zone}" data-d="-1" aria-label="Убрать камеру ${name}"${k ? '' : ' disabled'}>−</button>
         <output class="cnt__n" aria-live="polite"><span>${k}</span><small>${plural(k, 'камера', 'камеры', 'камер')}</small></output>
-        <button type="button" data-zone="${zone}" data-d="1" aria-label="Добавить камеру ${name}">+</button>
+        <button type="button" data-zone="${zone}" data-d="1" aria-label="Добавить камеру ${name}"${k >= PRICE.maxPerZone ? ' aria-disabled="true"' : ''}>+</button>
       </div>
     </div>`;
   }).join('')}</div>
@@ -318,7 +318,7 @@ function renderPlan() {
     el('text', { x: lx * 0.95, y: ly + 2, class: 'p-num', 'text-anchor': anchor }, g).textContent = n;
     el('text', { x: lx, y: ly, class: 'p-tag', 'text-anchor': anchor }, g).textContent = `КАМ ${n} · ${s.l}`;
     const toggle = () => {
-      on.has(i) ? on.delete(i) : canAdd() && on.add(i);
+      on.has(i) ? on.delete(i) : canAdd(s.t) && on.add(i);
       renderPlan();
       renderSmeta();
       const again = svg.querySelector(`.p-slot[data-i="${i}"]`);
@@ -333,9 +333,13 @@ function renderPlan() {
   $('#planName').textContent = `ПЛАН · ${plan.title}`;
 }
 
-function canAdd() {
-  if (counts(state).total < PRICE.maxCams) return true;
-  toast(`Больше ${PRICE.maxCams} камер посчитаем отдельно — напишите нам`);
+// лимит — на каждую зону отдельно: 16 снаружи и 16 внутри
+const zoneFull = (s, zone) => { const c = counts(s); return (zone === 'out' ? c.out : c.inn) >= PRICE.maxPerZone; };
+const tooMany = (s) => { const c = counts(s); return c.out > PRICE.maxPerZone || c.inn > PRICE.maxPerZone; };
+
+function canAdd(zone) {
+  if (!zoneFull(state, zone)) return true;
+  toast(`Больше ${PRICE.maxPerZone} камер ${zone === 'out' ? 'снаружи' : 'внутри'} посчитаем отдельно — напишите нам`);
   return false;
 }
 
@@ -422,9 +426,9 @@ function load() {
   next.plan = d.plan;
   next.days = DAYS.includes(d.days) ? d.days : next.days;
   next.cable = CABLES.includes(d.cable) ? d.cable : PLANS[d.plan].cable;
-  next.extraOut = int(d.extraOut, PRICE.maxCams) ?? 0;
-  next.extraIn = int(d.extraIn, PRICE.maxCams) ?? 0;
-  if (counts(next).total > PRICE.maxCams) return false;
+  next.extraOut = int(d.extraOut, PRICE.maxPerZone) ?? 0;
+  next.extraIn = int(d.extraIn, PRICE.maxPerZone) ?? 0;
+  if (tooMany(next)) return false;
   if (Array.isArray(d.picked)) next.picked = next.picked.map((_, i) => d.picked[i] === true);
   next.picked[0] = true;
   // дальше первого невыбранного шага не пускаем — как и кнопки в полосе шагов
@@ -458,11 +462,11 @@ function applyUrl() {
   const next = fresh();
   next.plan = plan;
   next.on[plan] = on;
-  next.extraOut = int(q.get('out') || 0, PRICE.maxCams) ?? 0;
-  next.extraIn = int(q.get('in') || 0, PRICE.maxCams) ?? 0;
+  next.extraOut = int(q.get('out') || 0, PRICE.maxPerZone) ?? 0;
+  next.extraIn = int(q.get('in') || 0, PRICE.maxPerZone) ?? 0;
   next.days = DAYS.includes(+q.get('days')) ? +q.get('days') : next.days;
   next.cable = CABLES.includes(+q.get('cable')) ? +q.get('cable') : PLANS[plan].cable;
-  if (counts(next).total > PRICE.maxCams) next.extraOut = next.extraIn = 0;
+  if (tooMany(next)) next.extraOut = next.extraIn = 0;
   next.picked = [true, true, true, true];
   next.step = STEPS.length - 1;
   Object.assign(state, next);
