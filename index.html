@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Baqyla — видеонаблюдение в Уральске</title>
+  <meta name="description" content="Монтаж видеонаблюдения в Уральске для дома, бизнеса и крестьянского хозяйства. Отметьте камеры на плане — стоимость посчитается сразу.">
+  <meta property="og:title" content="Baqyla — видеонаблюдение в Уральске">
+  <meta property="og:description" content="Отметьте камеры на плане — стоимость посчитается сразу.">
+  <meta property="og:image" content="assets/og.jpg">
+  <meta name="theme-color" content="#0A0C10">
+  <link rel="icon" href="assets/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Unbounded:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top__in">
+      <a class="brand" href="#" aria-label="Baqyla — наверх">
+        <img src="assets/mark.png" alt="" width="34" height="34">
+        <span class="brand__word">BA<b>Q</b>YLA</span>
+      </a>
+      <nav class="nav" aria-label="Разделы">
+        <a href="#calc">Расчёт</a>
+        <a href="#kits">Комплекты</a>
+        <a href="#process">Как работаем</a>
+        <a href="#faq">Вопросы</a>
+      </nav>
+      <a class="top__phone" href="tel:+77089804260">+7 708 980 42 60</a>
+      <a class="btn btn--wa btn--sm" href="https://wa.me/77089804260" target="_blank" rel="noopener">WhatsApp</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero wrap">
+      <p class="eyebrow"><span class="rec" aria-hidden="true"></span>Уральск · монтаж видеонаблюдения</p>
+      <h1>Отметьте на плане, где нужны камеры. Цена посчитается сразу.</h1>
+      <p class="hero__sub">Ставим камеры в частных домах, магазинах и крестьянских хозяйствах. Настраиваем просмотр с телефона и полгода обслуживаем бесплатно.</p>
+    </section>
+
+    <section id="calc" class="calc wrap" aria-label="Расчёт стоимости">
+      <div class="calc__plan">
+        <div class="tabs" role="tablist" aria-label="Тип объекта" id="tabs"></div>
+
+        <div class="monitor">
+          <div class="monitor__bar" aria-hidden="true">
+            <span><span class="rec"></span><span id="planName">ПЛАН · ДОМ</span></span>
+            <span id="clock">--.--.---- --:--:--</span>
+          </div>
+          <svg id="plan" class="plan" viewBox="0 0 640 440" role="group" aria-label="План объекта: нажмите на точку, чтобы поставить камеру"></svg>
+          <div class="monitor__legend" aria-hidden="true">
+            <span><i class="dot dot--out"></i>уличная</span>
+            <span><i class="dot dot--in"></i>внутренняя</span>
+            <span class="muted">нажмите на точку</span>
+          </div>
+        </div>
+
+        <div class="opts">
+          <div class="opt">
+            <div class="opt__label">Ещё камеры, которых нет на плане</div>
+            <div class="steppers">
+              <div class="stepper" data-key="extraOut">
+                <span>Уличные</span>
+                <button type="button" data-d="-1" aria-label="Убрать уличную камеру">−</button>
+                <output>0</output>
+                <button type="button" data-d="1" aria-label="Добавить уличную камеру">+</button>
+              </div>
+              <div class="stepper" data-key="extraIn">
+                <span>Внутренние</span>
+                <button type="button" data-d="-1" aria-label="Убрать внутреннюю камеру">−</button>
+                <output>0</output>
+                <button type="button" data-d="1" aria-label="Добавить внутреннюю камеру">+</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="opt">
+            <div class="opt__label" id="archLabel">Сколько дней хранить запись</div>
+            <div class="seg" role="radiogroup" aria-labelledby="archLabel" id="archive">
+              <button type="button" role="radio" data-v="7">7 дней</button>
+              <button type="button" role="radio" data-v="14">14 дней</button>
+              <button type="button" role="radio" data-v="30">30 дней</button>
+            </div>
+          </div>
+
+          <div class="opt">
+            <label class="opt__label" for="cable">Кабель до одной камеры, в среднем <b id="cableOut">15 м</b></label>
+            <input type="range" id="cable" min="5" max="50" step="5" value="15">
+            <div class="range__ends"><span>5 м</span><span>50 м</span></div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="smeta" aria-live="polite">
+        <div class="smeta__head">
+          <div class="smeta__title">Предварительная смета</div>
+          <div class="smeta__sum" id="summary"></div>
+        </div>
+        <div id="lines" class="smeta__lines"></div>
+        <div class="smeta__total">
+          <span>Итого под ключ</span>
+          <strong id="total">0 ₸</strong>
+        </div>
+        <p class="smeta__note">Цена предварительная. Точную сумму назовём после осмотра объекта. Гарантия на монтаж — 12 месяцев, обслуживание — 6 месяцев бесплатно.</p>
+        <a class="btn btn--wa btn--block" id="send" href="#" target="_blank" rel="noopener">Отправить расчёт в WhatsApp</a>
+        <a class="btn btn--ghost btn--block" href="tel:+77089804260">Позвонить</a>
+      </aside>
+    </section>
+
+    <section id="kits" class="section wrap">
+      <h2>Готовые комплекты</h2>
+      <p class="section__sub">С них начинают чаще всего. Откройте комплект в расчёте и поменяйте под себя.</p>
+      <div class="kits" id="kitsList"></div>
+    </section>
+
+    <section id="process" class="section wrap">
+      <h2>Как работаем</h2>
+      <ol class="steps">
+        <li><b>Заявка</b><span>Пишете в WhatsApp или звоните. Можно сразу прислать расчёт с сайта.</span></li>
+        <li><b>Осмотр</b><span>Приезжаем, смотрим объект, уточняем, где встанут камеры и как пройдёт кабель.</span></li>
+        <li><b>Монтаж</b><span>Ставим камеры и регистратор, прокладываем кабель в гофре, проверяем каждую точку.</span></li>
+        <li><b>Телефон</b><span>Настраиваем просмотр с телефона и показываем, как смотреть архив.</span></li>
+        <li><b>Обслуживание</b><span>Шесть месяцев после сдачи обслуживаем бесплатно. Гарантия на монтаж — год.</span></li>
+      </ol>
+    </section>
+
+    <section id="faq" class="section wrap">
+      <h2>Вопросы</h2>
+      <div class="faq">
+        <details>
+          <summary>Будет ли видно ночью?</summary>
+          <p>Уличные камеры ColorVu снимают ночью в цвете — при слабом свете от фонаря или окна. В полной темноте нужна подсветка, подскажем на осмотре.</p>
+        </details>
+        <details>
+          <summary>Нужен ли интернет?</summary>
+          <p>Запись идёт на диск в регистраторе и без интернета. Интернет нужен только чтобы смотреть камеры с телефона.</p>
+        </details>
+        <details>
+          <summary>Сколько хранится запись?</summary>
+          <p>Зависит от числа камер и объёма диска. В расчёте выберите, сколько дней хранить, — диск подберётся сам. Когда место кончается, старая запись стирается автоматически.</p>
+        </details>
+        <details>
+          <summary>Почему цена предварительная?</summary>
+          <p>Длину кабеля и сложность прокладки видно только на месте. После осмотра пришлём точную смету — обычно она близка к расчёту с сайта.</p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot__in">
+      <div class="brand">
+        <img src="assets/mark.png" alt="" width="28" height="28">
+        <span class="brand__word">BA<b>Q</b>YLA</span>
+      </div>
+      <div class="foot__links">
+        <a href="tel:+77089804260">+7 708 980 42 60</a>
+        <a href="https://wa.me/77089804260" target="_blank" rel="noopener">WhatsApp</a>
+        <a href="https://instagram.com/baqyla.security.07" target="_blank" rel="noopener">Instagram</a>
+        <span>г. Уральск</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="mbar" aria-hidden="true">
+    <div><small>Итого</small><strong id="mTotal">0 ₸</strong></div>
+    <a class="btn btn--wa btn--sm" id="mSend" href="#" target="_blank" rel="noopener" tabindex="-1">В WhatsApp</a>
+  </div>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>
