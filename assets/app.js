@@ -118,21 +118,9 @@ function lineHtml(l) {
 function renderSmeta() {
   const e = estimate(state);
   const { c } = e;
-  if (!c.total) {
-    $('#summary').textContent = 'Камер пока нет';
-    $('#lines').innerHTML = '<p class="smeta__empty">Нажмите на точку на плане — камера встанет туда, и здесь появится смета.</p>';
-  } else {
-    const parts = [];
-    if (c.out) parts.push(`${c.out} уличн.`);
-    if (c.inn) parts.push(`${c.inn} внутр.`);
-    $('#summary').textContent = `${c.total} ${plural(c.total, 'камера', 'камеры', 'камер')} (${parts.join(', ')}) · архив ${state.days} дн.`;
-    const sum = (list) => list.reduce((a, l) => a + l.sum, 0);
-    $('#lines').innerHTML = `
-      <div class="grp"><span>Оборудование</span><span>${fmt(sum(e.eq))}</span></div>
-      ${e.eq.map(lineHtml).join('')}
-      <div class="grp"><span>Работа</span><span>${fmt(sum(e.work))}</span></div>
-      ${e.work.map(lineHtml).join('')}`;
-  }
+  $('#lines').innerHTML = c.total
+    ? [...e.eq, ...e.work].map(lineHtml).join('')
+    : '<p class="smeta__empty">Нажмите на точку на плане — камера встанет туда, и здесь появится смета.</p>';
   animateTotal(e.total);
 
   const href = waLink(e);
@@ -230,13 +218,6 @@ function toast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('is-on'), 3200);
 }
-
-function tick() {
-  const d = new Date(), p = (n) => String(n).padStart(2, '0');
-  $('#clock').textContent = `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
-}
-tick();
-setInterval(tick, 1000);
 
 // мобильная панель с итогом — пока смета не на экране
 const mbar = $('.mbar');
