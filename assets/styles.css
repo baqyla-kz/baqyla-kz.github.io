@@ -104,11 +104,6 @@ button { font: inherit; color: inherit; }
 
 /* ---------- первый экран ---------- */
 .hero { padding-top: 40px; padding-bottom: 24px; }
-.eyebrow {
-  display: flex; align-items: center; gap: 10px;
-  margin: 0 0 20px;
-  font: 500 12px/1 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
-}
 .rec {
   display: inline-block; width: 8px; height: 8px; border-radius: 50%;
   background: var(--rec); box-shadow: 0 0 0 3px rgba(229, 72, 77, .2);
@@ -133,9 +128,10 @@ h1 {
 }
 
 /* ---------- пошаговый расчёт ---------- */
-.wiz { min-width: 0; padding: 22px; background: #E4E9F0; border-radius: 22px; }
+.wiz { container: wiz / inline-size; min-width: 0; padding: 22px; background: #E4E9F0; border-radius: 22px; }
 @media (max-width: 600px) { .wiz { padding: 14px; border-radius: 18px; } }
-.steps-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 0; margin-bottom: 20px; }
+.steps-bar { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px 0; margin-bottom: 20px; }
+.steps-bar button { flex: none; }
 .steps-bar button {
   display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 16px 0 6px;
   border: 0; border-radius: 999px; background: #fff; color: #4A5262;
@@ -156,26 +152,31 @@ h1 {
 .steps-bar__line { stroke-dasharray: 4 4; }
 .steps-bar__arrow.is-passed .steps-bar__line { stroke-dasharray: none; }
 .steps-bar__arrow.is-passed { color: var(--signal); }
-@media (max-width: 760px) {
-  /* на телефоне у непройденных/пройденных шагов только номер — все пять в одну строку */
-  .steps-bar { gap: 2px; flex-wrap: nowrap; }
-  .steps-bar button { height: 36px; padding: 0 4px; gap: 8px; font-size: 14px; flex: none; }
+/* путь сжимается по ширине блока (а не окна): сначала прячем названия следующих шагов, потом всех, кроме текущего */
+@container wiz (max-width: 1040px) {
+  .steps-bar .is-later { padding-right: 6px; }
+  .steps-bar .is-later .steps-bar__name { display: none; }
+}
+@container wiz (max-width: 700px) {
+  .steps-bar { gap: 1px; }
+  .steps-bar button, .steps-bar .is-later { height: 36px; padding: 0 4px; gap: 8px; font-size: 14px; }
   .steps-bar b { width: 28px; height: 28px; font-size: 13px; }
-  .steps-bar .is-now { padding-right: 14px; }
+  .steps-bar .is-now { padding-right: 12px; }
   .steps-bar button:not(.is-now) .steps-bar__name { display: none; }
   .steps-bar__arrow { margin: 0; }
-  .steps-bar__arrow svg { width: 16px; height: 10px; }
+  .steps-bar__arrow svg { width: 10px; height: 10px; }
 }
 @media (max-width: 380px) {
   .steps-bar { gap: 1px; }
-  .steps-bar button { padding: 0 2px; }
+  .steps-bar button, .steps-bar .is-later { padding: 0 2px; gap: 6px; font-size: 13px; }
   .steps-bar b { width: 26px; height: 26px; }
   .steps-bar .is-now { padding-right: 10px; }
-  .steps-bar__arrow svg { width: 13px; }
+  .steps-bar__arrow svg { width: 8px; }
 }
 .q { margin: 0 0 18px; font: 700 clamp(22px, 2.4vw, 30px)/1.2 var(--f-display); outline: none; }
 .wiz__nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 22px; }
 .wiz__nav .btn { min-width: 160px; }
+@container wiz (max-width: 420px) { .wiz__nav .btn { min-width: 0; flex: 1; } }
 .wiz__nav #next { margin-left: auto; }
 .wiz__nav .btn:disabled { opacity: .4; cursor: default; }
 .wiz__nav [hidden] { display: none; }
@@ -230,7 +231,7 @@ h1 {
 }
 .o[aria-pressed="true"] .o__ribbon { opacity: 1; transform: none; }
 /* рука-подсказка, пока на шаге ничего не выбрано */
-.hand { position: absolute; left: 24%; top: 46%; z-index: 2; display: flex; align-items: center; gap: 10px; pointer-events: none; animation: tap 1.4s ease-in-out infinite; }
+.hand { position: absolute; right: 12px; top: 48px; z-index: 2; display: flex; flex-direction: row-reverse; align-items: flex-start; gap: 6px; pointer-events: none; animation: tap 1.4s ease-in-out infinite; }
 .hand span { padding: 8px 12px; border-radius: 10px; background: var(--text); color: #fff; font-size: 14px; font-weight: 500; white-space: nowrap; }
 @keyframes tap { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-6px, -8px); } }
 @media (prefers-reduced-motion: reduce) {
@@ -251,7 +252,7 @@ h1 {
   .o__meta { margin-top: 6px; }
   .o__check { top: 50%; margin-top: -15px; }
   .o__ribbon { top: 8px; padding: 3px 8px 3px 6px; font-size: 11px; }
-  .hand { left: auto; right: 50px; top: -30px; }
+  .hand { right: 8px; top: -34px; align-items: center; }
   .hand svg { width: 36px; height: 36px; }
   .hand span { font-size: 13px; padding: 6px 10px; }
 }
