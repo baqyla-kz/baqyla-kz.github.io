@@ -8,8 +8,8 @@ const fresh = () => ({
   on: Object.fromEntries(Object.keys(PLANS).map((k) => [k, new Set()])),
   extraOut: 0,
   extraIn: 0,
-  days: 14,
-  daysSet: false, // архив выбран сам (14 — только значение по умолчанию)
+  store: null, // носитель записи: 'sd' | '2x1' (диск 2 ТБ) | '8x2' (два по 8 ТБ)…, см. storeOptions в data.js
+  storeSet: false, // клиент сам выбрал носитель (до этого в смете — диск примерно на 2 недели)
   net: null, // интернет на объекте: 'yes' | 'no' | null — ещё не ответили
   cable: 15,
 });
@@ -25,7 +25,6 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 const icon = (n) => `<img class="o__img" src="assets/icons/${n}.webp" alt="">`;
 const art = (svg) => `<span class="o__art" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${svg}</svg></span>`;
-const big = (n, unit) => `<span class="o__big" aria-hidden="true"><b>${n}</b>${unit}</span>`;
 const camsWord = (n) => `${n} ${plural(n, 'камера', 'камеры', 'камер')}`;
 const CAM_IMG = '<img src="assets/icons/camera.webp" alt="">';
 
@@ -57,28 +56,34 @@ const STEPS = [
   },
   {
     name: 'Запись и интернет',
-    q: 'Сколько дней хранить запись?',
-    options: () => [7, 14, 30].map((d) => {
-      const e = estimate({ ...state, days: d });
-      const disk = e.eq.find((l) => l.name.startsWith('Жёсткий диск'));
-      return {
-        v: d, on: state.days === d,
-        html: `${big(d, plural(d, 'день', 'дня', 'дней'))}<b>${d === 7 ? 'Неделю' : d === 14 ? 'Две недели' : 'Месяц'}</b><small>${disk ? disk.name.replace('Жёсткий диск', 'Диск') + (disk.qty > 1 ? ` × ${disk.qty}` : '') : ''}</small>`,
-      };
-    }),
-    isSet: () => state.daysSet,
-    pick: (v) => { state.days = v; state.daysSet = true; },
+    q: 'Сколько дней хранить запись с камер?',
+    // карточка = носитель; крупно — сколько дней примерно хватит при выбранном числе камер
+    options: () => {
+      const n = counts(state).total, cur = storeOf(state).key;
+      return storeOptions(state).map((o) => {
+        const r = daysRange(storeDays(o, n));
+        const pics = o.sd ? 1 : o.tb >= 2 || o.qty > 1 ? 2 : 1; // от 2 ТБ — две иконки диска
+        return {
+          v: o.key, on: cur === o.key,
+          html: `<span class="o__big o__big--store" aria-hidden="true"><span class="o__media">${`<img src="assets/icons/${o.sd ? 'sd' : 'hdd'}.webp" alt="">`.repeat(pics)}</span><span class="o__days"><b>${r.num}</b>${r.unit}</span></span>`
+            + (o.sd ? `<b>Карта памяти ${PRICE.sd.gb} ГБ</b><small>В каждой камере, без регистратора</small>`
+              : `<b>${o.qty > 1 ? `${o.qty} диска по ${o.tb} ТБ` : `Диск ${o.tb} ТБ`}</b><small>В регистраторе, на ${n} ${plural(n, 'камеру', 'камеры', 'камер')}</small>`),
+        };
+      });
+    },
+    isSet: () => state.storeSet,
+    pick: (v) => { state.store = v; state.storeSet = true; },
     // второй вопрос на том же шаге; на цену пока не влияет — уходит в сообщение и пояснение под сметой
     more: {
       q: 'Есть интернет на объекте?',
       options: () => [
-        ['yes', 'wifi', 'Есть интернет', 'Камеры можно смотреть с телефона откуда угодно'],
-        ['no', 'wifi-off', 'Нет интернета', 'Запись идёт на диск, смотреть — на месте'],
+        ['yes', 'wifi', state.plan === 'business' ? 'На объекте есть интернет' : 'В доме есть интернет', 'Камеры можно смотреть с телефона откуда угодно'],
+        ['no', 'wifi-off', 'Нет интернета', 'Запись сохраняется, смотреть — на месте'],
       ].map(([v, ic, t, d]) => ({ v, on: state.net === v, html: `${icon(ic)}<b>${t}</b><small>${d}</small>` })),
       isSet: () => state.net !== null,
       pick: (v) => (state.net = v),
     },
-    ready: () => state.daysSet && state.net !== null,
+    ready: () => state.storeSet && state.net !== null,
   },
   {
     name: 'Расстояние',
@@ -381,7 +386,16 @@ function lineHtml(l) {
   return `<div class="ln"><span class="ln__name">${l.name}</span><span class="ln__qty">${l.qty} ${l.unit} × ${fmt(l.price)}</span><span class="ln__sum">${fmt(l.sum)}</span></div>`;
 }
 
+// после изменения камер выбранный носитель может пропасть из вариантов (SD при 5 камерах) — тогда спросить заново
+function syncStore() {
+  if (!state.store || !state.plan || storeOptions(state).some((o) => o.key === state.store)) return;
+  state.store = null;
+  state.storeSet = false;
+  state.picked[2] = false;
+}
+
 function renderSmeta() {
+  syncStore();
   const e = state.plan ? estimate(state) : { c: { total: 0 }, eq: [], work: [], total: 0 };
   $('#lines').innerHTML = e.c.total
     ? [...e.eq, ...e.work].map(lineHtml).join('')
@@ -409,7 +423,8 @@ function waLink(e) {
     `Объект: ${obj ? obj.t.toLowerCase() : plan.tab}`,
     `Камер: ${e.c.total} (уличных ${e.c.out}, внутренних ${e.c.inn})`,
     places.length ? `Где: ${places.join(', ')}${extra}` : '',
-    `Архив: ${state.days} дней, кабель ~${state.cable} м на камеру`,
+    `Запись: ${storeLabel(e.store)}, примерно ${daysRange(storeDays(e.store, e.c.total)).text}`,
+    `Кабель: ~${state.cable} м на камеру`,
     state.net ? `Интернет на объекте: ${state.net === 'yes' ? 'есть' : 'нет'}` : '',
     `Предварительно: ${fmt(e.total)}`,
     location.protocol.startsWith('http') ? `Схема: ${shareUrl()}` : '',
@@ -423,7 +438,7 @@ function waLink(e) {
 // «Поделиться» даёт ссылку ?obj=home&cams=1.2.3.4&… — по ней открывается та же схема.
 
 const STORE = 'baqyla-calc-v1';
-const DAYS = [7, 14, 30], CABLES = [10, 15, 25], NETS = ['yes', 'no'];
+const CABLES = [10, 15, 25], NETS = ['yes', 'no'];
 
 const int = (v, max) => (Number.isInteger(+v) && +v >= 0 && +v <= max ? +v : null);
 const slotSet = (plan, list) => new Set(list.map(Number).filter((i) => Number.isInteger(i) && i >= 0 && i < PLANS[plan].slots.length));
@@ -444,8 +459,8 @@ function load() {
   const next = fresh();
   for (const k in PLANS) if (Array.isArray(d.on && d.on[k])) next.on[k] = slotSet(k, d.on[k]);
   next.plan = d.plan;
-  next.days = DAYS.includes(d.days) ? d.days : next.days;
-  next.daysSet = d.daysSet === true || (d.daysSet === undefined && Array.isArray(d.picked) && d.picked[2] === true); // сохранено до вопроса про интернет
+  next.store = typeof d.store === 'string' ? d.store : null; // недоступный при этих камерах носитель storeOf просто не найдёт
+  next.storeSet = d.storeSet === true && next.store !== null; // в старых сохранениях («дни») носителя нет — спросим заново
   next.net = NETS.includes(d.net) ? d.net : null;
   next.cable = CABLES.includes(d.cable) ? d.cable : PLANS[d.plan].cable;
   next.extraOut = int(d.extraOut, PRICE.maxPerZone) ?? 0;
@@ -453,7 +468,7 @@ function load() {
   if (tooMany(next)) return false;
   if (Array.isArray(d.picked)) next.picked = next.picked.map((_, i) => d.picked[i] === true);
   next.picked[0] = true;
-  next.picked[2] = next.picked[2] && next.daysSet && next.net !== null; // шаг 3 пройден, только если ответили на оба вопроса
+  next.picked[2] = next.picked[2] && next.storeSet && next.net !== null; // шаг 3 пройден, только если ответили на оба вопроса
   // дальше первого невыбранного шага не пускаем — как и кнопки в полосе шагов
   const open = next.picked.indexOf(false);
   next.step = Math.min(int(d.step, STEPS.length - 1) ?? 0, open < 0 ? STEPS.length - 1 : open);
@@ -465,7 +480,7 @@ function shareUrl() {
   const p = new URLSearchParams({ obj: state.plan, cams: [...state.on[state.plan]].sort((a, b) => a - b).map((i) => i + 1).join('.') });
   if (state.extraOut) p.set('out', state.extraOut);
   if (state.extraIn) p.set('in', state.extraIn);
-  p.set('days', state.days);
+  if (state.storeSet) p.set('rec', state.store);
   if (state.net) p.set('net', state.net);
   p.set('cable', state.cable);
   return `${location.href.split(/[?#]/)[0]}?${p}`;
@@ -477,7 +492,7 @@ function applyUrl() {
   let plan, on;
   if (q.has('kit')) {
     const k = KITS[+q.get('kit')];
-    if (k) { plan = k.plan; on = new Set(k.on); }
+    if (k) { plan = k.plan; on = new Set(k.on); q.set('rec', k.store); }
   } else if (PLANS[q.get('obj')]) {
     plan = q.get('obj');
     on = slotSet(plan, (q.get('cams') || '').split('.').filter(Boolean).map((n) => n - 1));
@@ -488,8 +503,8 @@ function applyUrl() {
   next.on[plan] = on;
   next.extraOut = int(q.get('out') || 0, PRICE.maxPerZone) ?? 0;
   next.extraIn = int(q.get('in') || 0, PRICE.maxPerZone) ?? 0;
-  next.days = DAYS.includes(+q.get('days')) ? +q.get('days') : next.days;
-  next.daysSet = true;
+  next.store = q.get('rec');
+  next.storeSet = !!next.store;
   next.net = NETS.includes(q.get('net')) ? q.get('net') : null;
   next.cable = CABLES.includes(+q.get('cable')) ? +q.get('cable') : PLANS[plan].cable;
   if (tooMany(next)) next.extraOut = next.extraIn = 0;

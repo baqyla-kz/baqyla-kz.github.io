@@ -221,6 +221,13 @@ h1 {
 .o__art svg { width: 62%; height: 62%; }
 .o__big { display: grid; grid-auto-flow: column; align-items: baseline; align-content: center; justify-content: center; gap: 6px; height: clamp(64px, 36cqi, 112px); margin: 8px 0 14px; color: var(--signal); font-size: 16px; font-weight: 600; }
 .o__big b { font: 700 clamp(40px, 26cqi, 76px)/1 var(--f-display); }
+/* шаг «Запись»: иконки носителя (SD / диск, от 2 ТБ — две) рядом с примерным числом дней */
+.o__big--store { align-items: center; gap: clamp(8px, 4cqi, 16px); }
+.o__media { display: flex; flex: none; }
+.o__media img { width: clamp(44px, 22cqi, 80px); aspect-ratio: 1; object-fit: contain; }
+.o__media img + img { margin-left: calc(clamp(44px, 22cqi, 80px) * -.4); }
+.o__days { display: grid; justify-items: start; line-height: 1.15; }
+.o__big--store .o__days b { font: 700 clamp(28px, 12cqi, 46px)/1 var(--f-display); white-space: nowrap; }
 .o > b { font: 700 clamp(17px, 8.4cqi, 24px)/1.25 var(--f-display); hyphens: auto; }
 .o > small { margin-top: 4px; color: var(--muted); font-size: clamp(15px, 6.2cqi, 18px); }
 .o__meta { margin-top: 10px; align-self: flex-start; padding: 4px 10px; border-radius: 999px; background: #fff; font: 500 12px var(--f-mono); color: var(--muted); }
@@ -258,6 +265,12 @@ h1 {
   .o__art svg { width: 44px; height: 44px; }
   .o__big { grid-auto-flow: row; justify-items: center; align-items: center; gap: 2px; font-size: 12px; background: #fff; border-radius: 18px; }
   .o__big b { font-size: 30px; line-height: 1; }
+  .o:has(.o__big--store) { grid-template-columns: 96px minmax(0, 1fr); }
+  .o__big--store { width: 96px; height: auto; min-height: 84px; padding: 8px 4px; gap: 4px; }
+  .o__media img { width: 38px; }
+  .o__media img + img { margin-left: -14px; }
+  .o__days { justify-items: center; font-size: 11px; }
+  .o__big--store .o__days b { font-size: 19px; }
   .o > b { grid-column: 2; font-size: clamp(17px, 6.6cqi, 19px); hyphens: auto; }
   .o > small { font-size: clamp(15px, 6.2cqi, 17px); }
   .o > small, .o__meta { grid-column: 2; }

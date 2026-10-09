@@ -20,6 +20,7 @@ const PRICE = {
     { tb: 6, price: 62000 }, // нет в CRM — уточнить
     { tb: 8, price: 78000 }, // нет в CRM — уточнить
   ],
+  sd: { name: 'Карта памяти microSD 64 ГБ', gb: 64, price: 6000 }, // нет в CRM — ЦЕНА-ЗАГЛУШКА, уточнить
   cable: { name: 'Кабель UTP Cat.5e', price: 250 },
   conduit: { name: 'Гофра 20 мм', price: 150 },
   rj45: { name: 'Коннектор RJ45', price: 100, perCam: 2 },
@@ -27,6 +28,8 @@ const PRICE = {
   labor: { name: 'Монтаж камер', price: 12000 },
   setup: { name: 'Пусконаладка и настройка телефона', price: 15000 },
   gbPerCamDay: 30, // 4 Мп, H.265, запас на движение
+  sdMaxCams: 3, // SD-карту (запись в саму камеру, без регистратора) предлагаем при 1–3 камерах…
+  sdMaxCamsBusiness: 2, // …а в коммерции от 3 камер — всегда регистратор
   maxPerZone: 16, // не больше 16 уличных и 16 внутренних камер; больше — считаем вручную
 };
 
@@ -146,9 +149,9 @@ const OBJECTS = [
 ];
 
 const KITS = [
-  { name: 'Дом', plan: 'home', on: [0, 1, 2, 3], text: 'Четыре уличные камеры по углам дома' },
-  { name: 'Дом+', plan: 'home', on: [0, 1, 2, 3, 4, 5], text: 'Шесть камер: углы дома, въезд и задний двор' },
-  { name: 'Бизнес', plan: 'business', on: [0, 1, 2, 3, 4, 5, 6, 7], text: 'Улица и торговый зал: восемь камер' },
+  { name: 'Дом', plan: 'home', on: [0, 1, 2, 3], store: '2x1', text: 'Четыре уличные камеры по углам дома' },
+  { name: 'Дом+', plan: 'home', on: [0, 1, 2, 3, 4, 5], store: '4x1', text: 'Шесть камер: углы дома, въезд и задний двор' },
+  { name: 'Бизнес', plan: 'business', on: [0, 1, 2, 3, 4, 5, 6, 7], store: '4x1', text: 'Улица и торговый зал: восемь камер' },
 ];
 
 const fmt = (n) => Math.round(n).toLocaleString('ru-RU').replace(/ /g, ' ') + ' ₸';
@@ -169,6 +172,51 @@ function counts(s) {
   return { out, inn, total: out + inn };
 }
 
+// ---------- носитель записи ----------
+// Ключи: 'sd' — карта в каждой камере; '2x1' — один диск 2 ТБ; '8x2' — два диска по 8 ТБ.
+// Клиент выбирает носитель, дни записи считаются от числа камер и показываются примерно («6–8 дней»).
+
+const DISKS = [
+  ...PRICE.hdd.map((d) => ({ key: `${d.tb}x1`, tb: d.tb, qty: 1 })),
+  ...[2, 3, 4].map((q) => ({ key: `8x${q}`, tb: 8, qty: q })), // на 17–32 камеры одного диска мало
+];
+const SD = { key: 'sd', sd: true };
+
+const sdAllowed = (s, n) => n >= 1 && n <= (s.plan === 'business' ? PRICE.sdMaxCamsBusiness : PRICE.sdMaxCams);
+
+// дней записи: карта — своя у каждой камеры, диск — общий на все камеры
+const storeDays = (o, n) => (o.sd ? PRICE.sd.gb : o.tb * o.qty * 1000 / n) / PRICE.gbPerCamDay;
+
+// «6–8 дней»: от расчётного (с запасом на движение) до спокойного дня; больше двух месяцев — в месяцах
+function daysRange(d) {
+  const lo = Math.max(1, Math.floor(d));
+  if (lo >= 60) return { num: `${Math.floor(lo / 30)}+`, unit: 'мес.', text: `больше ${Math.floor(lo / 30)} мес.` };
+  const hi = Math.max(lo + 1, Math.round(d * 1.25));
+  const unit = plural(hi, 'день', 'дня', 'дней');
+  return { num: `${lo}–${hi}`, unit, text: `${lo}–${hi} ${unit}` };
+}
+
+// варианты на шаге «Запись»: SD первой (если можно), дальше три диска, начиная с того, где хватит хотя бы на 3 дня
+function storeOptions(s) {
+  const n = counts(s).total;
+  if (!n) return [];
+  let i = DISKS.findIndex((d) => storeDays(d, n) >= 3);
+  if (i < 0) i = DISKS.length - 1;
+  const sd = sdAllowed(s, n);
+  const disks = DISKS.slice(Math.min(i, DISKS.length - (sd ? 2 : 3)), i + (sd ? 2 : 3));
+  return sd ? [SD, ...disks] : disks;
+}
+
+// что считаем в смете: выбранный носитель, а пока не выбран (или стал недоступен) — диск примерно на 2 недели
+function storeOf(s) {
+  const opts = storeOptions(s), n = counts(s).total;
+  return opts.find((o) => o.key === s.store)
+    || opts.find((o) => !o.sd && storeDays(o, n) >= 14)
+    || opts[opts.length - 1];
+}
+
+const storeLabel = (o) => (o.sd ? `Карта ${PRICE.sd.gb} ГБ в каждой камере` : o.qty > 1 ? `${o.qty} диска по ${o.tb} ТБ` : `Диск ${o.tb} ТБ`);
+
 function estimate(s) {
   const c = counts(s);
   const eq = [], work = [];
@@ -178,18 +226,17 @@ function estimate(s) {
   add(eq, PRICE.camOut.name, c.out, 'шт', PRICE.camOut.price);
   add(eq, PRICE.camIn.name, c.inn, 'шт', PRICE.camIn.price);
 
-  // камер больше, чем каналов у самого большого регистратора, — ставим несколько больших
-  const top = PRICE.nvr[PRICE.nvr.length - 1];
-  const nvr = PRICE.nvr.find((r) => r.ch >= c.total);
-  if (nvr) add(eq, nvr.name, 1, 'шт', nvr.price);
-  else add(eq, top.name, Math.ceil(c.total / top.ch), 'шт', top.price);
-
-  const needTb = (c.total * s.days * PRICE.gbPerCamDay) / 1000;
-  const disk = PRICE.hdd.find((d) => d.tb >= needTb);
-  if (disk) add(eq, `Жёсткий диск ${disk.tb} ТБ`, 1, 'шт', disk.price);
-  else {
-    const big = PRICE.hdd[PRICE.hdd.length - 1];
-    add(eq, `Жёсткий диск ${big.tb} ТБ`, Math.ceil(needTb / big.tb), 'шт', big.price);
+  const store = storeOf(s);
+  if (store.sd) {
+    // запись в саму камеру: регистратор и диск не нужны
+    add(eq, PRICE.sd.name, c.total, 'шт', PRICE.sd.price);
+  } else {
+    // камер больше, чем каналов у самого большого регистратора, — ставим несколько больших
+    const top = PRICE.nvr[PRICE.nvr.length - 1];
+    const nvr = PRICE.nvr.find((r) => r.ch >= c.total);
+    if (nvr) add(eq, nvr.name, 1, 'шт', nvr.price);
+    else add(eq, top.name, Math.ceil(c.total / top.ch), 'шт', top.price);
+    add(eq, `Жёсткий диск ${store.tb} ТБ`, store.qty, 'шт', PRICE.hdd.find((d) => d.tb === store.tb).price);
   }
 
   const meters = c.total * s.cable;
@@ -202,5 +249,5 @@ function estimate(s) {
   add(work, PRICE.setup.name, 1, 'усл', PRICE.setup.price);
 
   const total = [...eq, ...work].reduce((a, l) => a + l.sum, 0);
-  return { c, eq, work, total, diskTb: disk ? disk.tb : null };
+  return { c, eq, work, total, store };
 }

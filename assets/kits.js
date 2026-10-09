@@ -1,7 +1,7 @@
 // Страница «Комплекты». Цены считаются тем же расчётом, что и на странице «Расчёт» (data.js).
 
 document.querySelector('#kitsList').innerHTML = KITS.map((k, i) => {
-  const e = estimate({ plan: k.plan, on: { [k.plan]: new Set(k.on) }, extraOut: 0, extraIn: 0, days: 14, cable: PLANS[k.plan].cable });
+  const e = estimate({ plan: k.plan, on: { [k.plan]: new Set(k.on) }, extraOut: 0, extraIn: 0, store: k.store, cable: PLANS[k.plan].cable });
   const main = e.eq.filter((l) => !/Кабель|Коннектор|коробка|Гофра/.test(l.name));
   return `
     <article class="kit">
@@ -13,7 +13,7 @@ document.querySelector('#kitsList').innerHTML = KITS.map((k, i) => {
         <li><span>Монтаж и настройка телефона</span><span>входит</span></li>
       </ul>
       <div class="kit__foot">
-        <div><small>Под ключ, архив 14 дней</small><div class="kit__price">${fmt(e.total)}</div></div>
+        <div><small>Под ключ, запись ≈ ${daysRange(storeDays(e.store, e.c.total)).text}</small><div class="kit__price">${fmt(e.total)}</div></div>
         <a class="btn btn--primary" href="index.html?kit=${i}">Открыть в расчёте</a>
       </div>
     </article>`;
