@@ -1,7 +1,7 @@
 // Страница «Расчёт»: пошаговый выбор → схема в конце, смета справа на всех шагах.
 // Цены, планы и расчёт — в data.js.
 
-const state = {
+const fresh = () => ({
   step: 0,
   picked: [false, false, false, false], // клиент сам выбрал на шагах 1–4 (до этого — рука-подсказка)
   plan: null,
@@ -11,7 +11,8 @@ const state = {
   extraIn: 0,
   days: 14,
   cable: 15,
-};
+});
+const state = fresh();
 
 const $ = (s) => document.querySelector(s);
 const NS = 'http://www.w3.org/2000/svg';
@@ -313,6 +314,9 @@ function renderSmeta() {
   $('#send').href = href;
   $('#mSend').href = href;
   $('#send').classList.toggle('is-disabled', !e.c.total);
+  $('#share').hidden = !e.c.total;
+  $('#reset').hidden = !state.plan;
+  save(); // смета перерисовывается после любого изменения — тут же и сохраняем
 }
 
 function waLink(e) {
@@ -328,25 +332,115 @@ function waLink(e) {
     places.length ? `Где: ${places.join(', ')}${extra}` : '',
     `Архив: ${state.days} дней, кабель ~${state.cable} м на камеру`,
     `Предварительно: ${fmt(e.total)}`,
+    location.protocol.startsWith('http') ? `Схема: ${shareUrl()}` : '',
     'Хочу точный расчёт.',
   ].filter(Boolean).join('\n');
   return `https://wa.me/${WA_PHONE}?text=${encodeURIComponent(text)}`;
 }
 
-// ?kit=N — пришли со страницы «Комплекты»: сразу на схему с камерами комплекта
-function applyKitFromUrl() {
-  const n = new URLSearchParams(location.search).get('kit');
-  const k = n === null ? null : KITS[+n];
-  if (!k) return;
-  state.plan = k.plan;
-  state.on[k.plan] = new Set(k.on);
-  const b = PLANS[k.plan].base;
-  state.where = k.on.some((i) => b.in.includes(i)) ? 'all' : 'out';
-  state.cable = PLANS[k.plan].cable;
-  state.picked = [true, true, true, true];
-  state.step = STEPS.length - 1;
-  history.replaceState(null, '', location.pathname);
+// ---------- сохранение и ссылка ----------
+// Выбор хранится в браузере — после перезагрузки клиент продолжает с того же шага.
+// «Поделиться» даёт ссылку ?obj=home&cams=1.2.3.4&… — по ней открывается та же схема.
+
+const STORE = 'baqyla-calc-v1';
+const DAYS = [7, 14, 30], CABLES = [10, 15, 25];
+
+const whereOf = (plan, set) => {
+  const b = PLANS[plan].base;
+  const inn = [...set].some((i) => b.in.includes(i));
+  const out = [...set].some((i) => !b.in.includes(i));
+  return inn && out ? 'all' : inn ? 'in' : 'out';
+};
+const int = (v, max) => (Number.isInteger(+v) && +v >= 0 && +v <= max ? +v : null);
+const slotSet = (plan, list) => new Set(list.map(Number).filter((i) => Number.isInteger(i) && i >= 0 && i < PLANS[plan].slots.length));
+
+function save() {
+  try {
+    localStorage.setItem(STORE, JSON.stringify({
+      ...state,
+      on: Object.fromEntries(Object.entries(state.on).map(([k, v]) => [k, [...v]])),
+    }));
+  } catch (_) { /* приватный режим или запрещено — просто не сохраняем */ }
 }
+
+function load() {
+  let d;
+  try { d = JSON.parse(localStorage.getItem(STORE)); } catch (_) { return false; }
+  if (!d || !PLANS[d.plan]) return false;
+  const next = fresh();
+  for (const k in PLANS) if (Array.isArray(d.on && d.on[k])) next.on[k] = slotSet(k, d.on[k]);
+  next.plan = d.plan;
+  next.where = ['out', 'in', 'all'].includes(d.where) ? d.where : whereOf(d.plan, next.on[d.plan]);
+  next.days = DAYS.includes(d.days) ? d.days : next.days;
+  next.cable = CABLES.includes(d.cable) ? d.cable : PLANS[d.plan].cable;
+  next.extraOut = int(d.extraOut, PRICE.maxCams) ?? 0;
+  next.extraIn = int(d.extraIn, PRICE.maxCams) ?? 0;
+  if (counts(next).total > PRICE.maxCams) return false;
+  if (Array.isArray(d.picked)) next.picked = next.picked.map((_, i) => d.picked[i] === true);
+  next.picked[0] = true;
+  // дальше первого невыбранного шага не пускаем — как и кнопки в полосе шагов
+  const open = next.picked.indexOf(false);
+  next.step = Math.min(int(d.step, STEPS.length - 1) ?? 0, open < 0 ? STEPS.length - 1 : open);
+  Object.assign(state, next);
+  return true;
+}
+
+function shareUrl() {
+  const p = new URLSearchParams({ obj: state.plan, cams: [...state.on[state.plan]].sort((a, b) => a - b).map((i) => i + 1).join('.') });
+  if (state.extraOut) p.set('out', state.extraOut);
+  if (state.extraIn) p.set('in', state.extraIn);
+  p.set('days', state.days);
+  p.set('cable', state.cable);
+  return `${location.href.split(/[?#]/)[0]}?${p}`;
+}
+
+// пришли по ссылке: ?kit=N со страницы «Комплекты» или ?obj=… от «Поделиться» — сразу на схему
+function applyUrl() {
+  const q = new URLSearchParams(location.search);
+  let plan, on;
+  if (q.has('kit')) {
+    const k = KITS[+q.get('kit')];
+    if (k) { plan = k.plan; on = new Set(k.on); }
+  } else if (PLANS[q.get('obj')]) {
+    plan = q.get('obj');
+    on = slotSet(plan, (q.get('cams') || '').split('.').filter(Boolean).map((n) => n - 1));
+  }
+  if (!plan) return false;
+  const next = fresh();
+  next.plan = plan;
+  next.on[plan] = on;
+  next.where = whereOf(plan, on);
+  next.extraOut = int(q.get('out') || 0, PRICE.maxCams) ?? 0;
+  next.extraIn = int(q.get('in') || 0, PRICE.maxCams) ?? 0;
+  next.days = DAYS.includes(+q.get('days')) ? +q.get('days') : next.days;
+  next.cable = CABLES.includes(+q.get('cable')) ? +q.get('cable') : PLANS[plan].cable;
+  if (counts(next).total > PRICE.maxCams) next.extraOut = next.extraIn = 0;
+  next.picked = [true, true, true, true];
+  next.step = STEPS.length - 1;
+  Object.assign(state, next);
+  history.replaceState(null, '', location.pathname);
+  return true;
+}
+
+$('#share').addEventListener('click', async () => {
+  const url = shareUrl();
+  if (navigator.share && matchMedia('(pointer: coarse)').matches) {
+    try { await navigator.share({ title: 'Расчёт видеонаблюдения — Baqyla', url }); } catch (_) { /* закрыли окно */ }
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    toast('Ссылка на расчёт скопирована');
+  } catch (_) {
+    prompt('Скопируйте ссылку на расчёт:', url);
+  }
+});
+
+$('#reset').addEventListener('click', () => {
+  Object.assign(state, fresh());
+  go(0);
+  toast('Начали расчёт заново');
+});
 
 // ---------- мелочи ----------
 
@@ -370,6 +464,6 @@ addEventListener('scroll', syncBar, { passive: true });
 addEventListener('resize', syncBar);
 narrow.addEventListener('change', () => renderPlan());
 
-applyKitFromUrl();
+applyUrl() || load();
 renderStep();
 renderSmeta();

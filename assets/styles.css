@@ -347,7 +347,19 @@ h1 {
   box-shadow: 0 2px 4px rgba(14, 18, 24, .04), 0 24px 60px rgba(14, 18, 24, .14);
 }
 @media (min-width: 1000px) { .smeta { position: sticky; top: 84px; } }
-.smeta__head { padding-bottom: 14px; }
+.smeta__head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-bottom: 14px; }
+.smeta__link {
+  padding: 0; border: 0; background: none; cursor: pointer;
+  font-size: 13px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px;
+}
+.smeta__link:hover { color: var(--text); }
+.smeta__share {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; margin-top: 12px; padding: 8px; border: 0; background: none; cursor: pointer;
+  font-size: 14px; font-weight: 500; color: var(--signal);
+}
+.smeta__share:hover { color: var(--signal-hi); text-decoration: underline; text-underline-offset: 3px; }
+.smeta__share[hidden], .smeta__link[hidden] { display: none; }
 .smeta__title { font: 500 15px var(--f-display); }
 .smeta__lines { display: grid; gap: 6px; }
 .smeta__empty { margin: 18px 0; color: var(--muted); font-size: 15px; }
