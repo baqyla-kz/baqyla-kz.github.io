@@ -39,7 +39,10 @@
     <section id="calc" class="calc wide" aria-label="Расчёт стоимости">
       <div class="wiz" id="wiz">
         <nav class="steps-bar" id="stepsBar" aria-label="Шаги расчёта"></nav>
-        <h2 class="q" id="q" tabindex="-1"></h2>
+        <div class="q-row">
+          <h2 class="q" id="q" tabindex="-1"></h2>
+          <p class="hint" id="hint" aria-hidden="true"><svg viewBox="0 0 24 24" fill="#fff" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10m0-.5V9a1.5 1.5 0 0 1 3 0v1.5m0 0a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1.2a5 5 0 0 1-3.9-1.9L4.6 16a1.5 1.5 0 0 1 2.3-1.9L9 16.5V11"/></svg>Нажмите на карточку</p>
+        </div>
         <div id="stepBody"></div>
         <div class="wiz__nav">
           <button type="button" class="btn btn--ghost" id="back">Назад</button>
