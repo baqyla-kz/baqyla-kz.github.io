@@ -25,12 +25,7 @@ html { scroll-behavior: smooth; scroll-padding-top: 80px; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 body {
   margin: 0;
-  /* белая инженерная сетка: мелкая клетка 8px, крестики на пересечениях крупной 80px */
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cpath d='M40.5 35v11M35 40.5h11' stroke='%237A8494' stroke-width='1'/%3E%3C/svg%3E") -40px -40px / 80px 80px,
-    linear-gradient(rgba(14, 18, 24, .045) 1px, transparent 1px) 0 0 / 8px 8px,
-    linear-gradient(90deg, rgba(14, 18, 24, .045) 1px, transparent 1px) 0 0 / 8px 8px,
-    #F3F4F6;
+  background: #ECEFF4; /* чистый светлый фон без узора */
   color: var(--text);
   font: 400 16px/1.55 var(--f-body);
   -webkit-font-smoothing: antialiased;
