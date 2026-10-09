@@ -11,7 +11,8 @@
   --faint: #8C95A4;
   --rec: #E5484D;
 
-  --f-display: 'Unbounded', system-ui, sans-serif;
+  --f-display: 'Rubik', system-ui, sans-serif;
+  --f-logo: 'Unbounded', sans-serif; /* только надпись BAQYLA в шапке — как в логотипе */
   --f-body: 'Golos Text', system-ui, sans-serif;
   --f-mono: 'JetBrains Mono', ui-monospace, monospace;
 
@@ -50,7 +51,7 @@ button { font: inherit; color: inherit; }
 }
 .top__in { display: flex; align-items: center; gap: 24px; height: 64px; }
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-.brand__word { font: 700 18px/1 var(--f-display); letter-spacing: .14em; }
+.brand__word { font: 700 18px/1 var(--f-logo); letter-spacing: .14em; }
 .brand__word b { color: var(--signal); font-weight: 700; }
 .nav { display: flex; gap: 4px; margin-left: 8px; }
 .nav a { padding: 8px 12px; border-radius: 9px; color: var(--muted); text-decoration: none; font-size: 15px; font-weight: 500; }
