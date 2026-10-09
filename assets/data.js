@@ -31,12 +31,19 @@ const PRICE = {
 };
 
 // План: x/y — точка крепления, a — куда смотрит камера (градусы, 0 = вправо, 90 = вниз).
+// zones — карточки шага «Сколько камер и где?»: фото из assets/photos/, кадр pos = [x%, y%] и zoom
+// выставлены в редакторе drafts/step2.html (не в git; запуск: python3 drafts/server.py . → http://localhost:5192/drafts/step2.html),
+// правило то же: object-position + transform-origin = pos, scale(zoom).
 const PLANS = {
   home: {
     tab: 'Дом',
     title: 'ЧАСТНЫЙ ДОМ',
     cable: 15,
-    base: { out: [0, 1, 2, 3], in: [6, 7] }, // что ставим по умолчанию, когда клиент выбрал «снаружи» / «внутри»
+    base: { out: [0, 1, 2, 3], in: [6, 7] }, // в каком порядке точки схемы заполняются счётчиками шага 2
+    zones: {
+      out: { t: 'Во дворе', d: 'Ворота, въезд, вокруг дома', photo: 'home-out', pos: [0, 71], zoom: 1.01 },
+      in: { t: 'Внутри дома', d: 'Прихожая, гостиная, детская', photo: 'home-in', pos: [50, 76.5], zoom: 1 },
+    },
     draw: `
       <path class="p-fence" d="M260 420 H20 V20 H620 V420 H360"/>
       <text class="p-label" x="310" y="434" text-anchor="middle">ВОРОТА</text>
@@ -65,6 +72,10 @@ const PLANS = {
     title: 'МНОГОКВАРТИРНЫЙ ДОМ',
     cable: 25,
     base: { out: [0, 1, 2, 3], in: [6, 7] },
+    zones: {
+      out: { t: 'Снаружи дома', d: 'Входы, двор, парковка', photo: 'flats-out', pos: [50, 31.3], zoom: 1 },
+      in: { t: 'Внутри подъезда', d: 'Холл, лифт, этажи', photo: 'flats-in', pos: [50, 100], zoom: 1 },
+    },
     draw: `
       <path class="p-fence" d="M540 420 H20 V20 H620 V420 H610"/>
       <text class="p-label" x="575" y="434" text-anchor="middle">ВЪЕЗД</text>
@@ -97,6 +108,10 @@ const PLANS = {
     title: 'КОММЕРЧЕСКИЙ ОБЪЕКТ',
     cable: 15,
     base: { out: [0, 1, 2, 3], in: [4, 5, 6, 7] },
+    zones: {
+      out: { t: 'У входа и на улице', d: 'Вход, витрина, парковка', photo: 'biz-out', pos: [44.7, 64.2], zoom: 1.22 },
+      in: { t: 'В помещении', d: 'Торговый зал, касса, склад', photo: 'biz-in', pos: [50, 93.6], zoom: 1 },
+    },
     draw: `
       <rect class="p-street" x="0" y="392" width="640" height="48"/>
       <text class="p-label" x="320" y="421" text-anchor="middle">УЛИЦА</text>

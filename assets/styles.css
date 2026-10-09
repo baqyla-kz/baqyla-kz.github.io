@@ -182,6 +182,7 @@ h1 {
   background: var(--text); color: #fff; font-size: 14px; font-weight: 500; white-space: nowrap;
   visibility: hidden; opacity: 0; transition: opacity .2s;
 }
+.hint[hidden] { display: none; } /* на шагах без карточек-кнопок подсказки нет совсем — не держим под неё строку */
 .hint.is-on { visibility: visible; opacity: 1; animation: hintFloat 1.4s ease-in-out infinite; }
 /* плавает целиком, как раньше: покачивается вниз-вбок — к карточкам */
 @keyframes hintFloat { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-6px, 7px); } }
@@ -259,6 +260,65 @@ h1 {
   .o__meta { margin-top: 6px; }
   .o__check { top: 50%; margin-top: -15px; }
   .o__ribbon { top: 8px; padding: 3px 8px 3px 6px; font-size: 11px; }
+}
+
+/* шаг «Сколько камер и где?»: слева камера и подпись, справа фото места, срезанное по диагонали,
+   «− число +» — вместе в правом нижнем углу на белой подложке */
+.cnt { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@container wiz (max-width: 560px) { .cnt { grid-template-columns: minmax(0, 1fr); gap: 10px; } }
+.cnt__card {
+  container-type: inline-size; position: relative; overflow: hidden;
+  display: flex; flex-direction: column; min-height: 250px; padding: 18px;
+  background: #F3F5F8; border: 2px solid #DCE1E8; border-bottom-width: 7px; border-radius: 18px;
+  transition: border-color .15s, background .15s;
+}
+.cnt__card.is-on { background: #EEF4FE; border-color: var(--signal); border-bottom-color: var(--signal-hi); }
+/* кадр (object-position, scale) задаётся в data.js — выставлен в редакторе drafts/step2.html с этими же размерами */
+.cnt__photo {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 54%; overflow: hidden;
+  clip-path: polygon(38% 0, 100% 0, 100% 100%, 0 100%);
+  filter: saturate(.35) brightness(1.04); opacity: .8; /* пока камер 0 — фото приглушено */
+  transition: filter .3s, opacity .3s;
+}
+.cnt__photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cnt__card.is-on .cnt__photo { filter: none; opacity: 1; }
+.cnt__main { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; max-width: 48%; }
+.cnt__cam { display: grid; place-items: center; width: clamp(64px, 19cqi, 92px); aspect-ratio: 1; margin-bottom: 10px; border-radius: 20px; background: #fff; box-shadow: 0 1px 2px rgba(14, 18, 24, .06); }
+.cnt__cam img { width: 84%; }
+.cnt__t { font: 700 clamp(19px, 5.6cqi, 24px)/1.2 var(--f-display); hyphens: auto; }
+.cnt__d { color: var(--muted); font-size: clamp(14px, 3.6cqi, 15px); line-height: 1.4; }
+.cnt__row { position: relative; display: flex; flex-wrap: wrap; gap: 3px; max-width: 46%; min-height: 26px; margin-top: auto; padding-top: 14px; }
+.cnt__row img { width: 26px; height: 26px; }
+.cnt__row img.is-new { animation: pop .3s cubic-bezier(.3, 1.6, .6, 1); }
+/* узкая карточка (телефон): ряд мини-камер мельче, чтобы не заходил под «− +» */
+@container (max-width: 400px) {
+  .cnt__row { max-width: 38%; gap: 2px; }
+  .cnt__row img { width: 20px; height: 20px; }
+}
+.cnt__ctl {
+  position: absolute; right: 14px; bottom: 14px;
+  display: flex; align-items: center; gap: 6px; padding: 6px;
+  background: #fff; border-radius: 22px; box-shadow: 0 6px 20px rgba(14, 18, 24, .18);
+}
+.cnt__ctl button {
+  width: 54px; height: 54px; border: 2px solid #DCE1E8; border-bottom-width: 5px; border-radius: 16px; background: #fff;
+  font: 700 28px/1 var(--f-display); cursor: pointer; color: var(--text);
+}
+.cnt__ctl button[data-d="1"] { background: var(--signal); border-color: var(--signal-hi); color: #fff; }
+.cnt__ctl button[data-d="1"]:hover { background: var(--signal-hi); }
+.cnt__ctl button:active { border-bottom-width: 2px; transform: translateY(3px); }
+.cnt__ctl button:disabled { opacity: .35; cursor: default; transform: none; border-bottom-width: 5px; }
+.cnt__n { min-width: 58px; text-align: center; font: 700 34px/1 var(--f-display); font-variant-numeric: tabular-nums; }
+.cnt__n small { display: block; margin-top: 2px; font: 500 12px var(--f-body); color: var(--muted); }
+@container (max-width: 340px) {
+  .cnt__ctl button { width: 48px; height: 48px; }
+  .cnt__n { min-width: 48px; font-size: 30px; }
+}
+.cnt-sum { display: flex; align-items: center; gap: 10px; margin-top: 16px; padding: 12px 16px; border-radius: 14px; background: #EEF4FE; color: var(--signal); font: 600 17px var(--f-display); }
+.cnt-sum img { width: 34px; height: 34px; }
+@media (prefers-reduced-motion: reduce) {
+  .cnt__photo, .cnt__card { transition: none; }
+  .cnt__row img.is-new { animation: none; }
 }
 
 .monitor {

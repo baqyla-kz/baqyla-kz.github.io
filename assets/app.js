@@ -5,7 +5,6 @@ const fresh = () => ({
   step: 0,
   picked: [false, false, false, false], // клиент сам выбрал на шагах 1–4 (до этого — рука-подсказка)
   plan: null,
-  where: 'out',
   on: Object.fromEntries(Object.keys(PLANS).map((k) => [k, new Set()])),
   extraOut: 0,
   extraIn: 0,
@@ -26,17 +25,9 @@ const icon = (n) => `<img class="o__img" src="assets/icons/${n}.webp" alt="">`;
 const art = (svg) => `<span class="o__art" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${svg}</svg></span>`;
 const big = (n, unit) => `<span class="o__big" aria-hidden="true"><b>${n}</b>${unit}</span>`;
 const camsWord = (n) => `${n} ${plural(n, 'камера', 'камеры', 'камер')}`;
-const whereSet = (plan, w) => {
-  const b = PLANS[plan].base;
-  return new Set(w === 'out' ? b.out : w === 'in' ? b.in : [...b.out, ...b.in]);
-};
-// камеры, которые получатся при выборе на шагах 2–3 (для подписи на карточке)
-const totalWith = (patch) => counts({ ...state, ...patch }).total;
+const CAM_IMG = '<img src="assets/icons/camera.webp" alt="">';
 
 const ART = {
-  out: '<path d="M10 30 32 12l22 18"/><path d="M16 26v24h32V26"/><circle cx="52" cy="12" r="5"/><path d="M6 54h52"/>',
-  in: '<rect x="10" y="10" width="44" height="44" rx="4"/><path d="M26 54V36h12v18"/><path d="M10 24h44"/>',
-  all: '<path d="M4 34 18 22l14 12"/><path d="M8 31v19h20V31"/><rect x="36" y="26" width="24" height="24" rx="3"/><path d="M44 50V40h8v10"/><path d="M2 54h60"/>',
   near: '<circle cx="14" cy="32" r="6"/><path d="M20 32h10"/><rect x="34" y="24" width="18" height="16" rx="3"/>',
   mid: '<circle cx="10" cy="32" r="6"/><path d="M16 32h22"/><rect x="40" y="24" width="18" height="16" rx="3"/>',
   far: '<circle cx="8" cy="32" r="5"/><path d="M13 32h34" stroke-dasharray="4 4"/><rect x="48" y="25" width="14" height="14" rx="3"/>',
@@ -50,26 +41,17 @@ const STEPS = [
     pick: (v) => {
       if (state.plan !== v) {
         state.plan = v;
-        state.on[v] = whereSet(v, state.where);
+        state.on[v] = new Set(PLANS[v].base.out); // по умолчанию — уличные камеры по базовым точкам
+        state.extraOut = state.extraIn = 0;
         state.cable = PLANS[v].cable;
       }
     },
   },
   {
-    name: 'Где камеры',
-    q: 'Где нужны камеры?',
-    options: () => [
-      ['out', 'Снаружи', 'Вокруг здания, вход, двор'],
-      ['in', 'Внутри', 'Помещения и входы изнутри'],
-      ['all', 'И снаружи, и внутри', 'Полная защита объекта'],
-    ].map(([v, t, d]) => ({
-      v, on: state.where === v,
-      html: `${art(ART[v])}<b>${t}</b><small>${d}</small><span class="o__meta">${camsWord(totalWith({ on: { [state.plan]: whereSet(state.plan, v) } }))}</span>`,
-    })),
-    pick: (v) => {
-      state.where = v;
-      state.on[state.plan] = whereSet(state.plan, v);
-    },
+    name: 'Камеры',
+    q: 'Сколько камер и где?',
+    ready: () => counts(state).total > 0, // «Дальше» — как только есть хоть одна камера
+    render: () => renderZones(),
   },
   {
     name: 'Архив',
@@ -120,7 +102,9 @@ function renderStep(animate) {
   renderStepsBar();
   const body = $('#stepBody');
 
-  if (s.options) {
+  if (s.render) {
+    body.innerHTML = s.render();
+  } else if (s.options) {
     const opts = s.options();
     const picked = state.picked[state.step];
     body.innerHTML = `<div class="choices">${opts.map((o) =>
@@ -148,12 +132,13 @@ function renderStep(animate) {
 
   // подсказка у вопроса — пока на шаге с карточками ничего не выбрано
   $('#hint').classList.toggle('is-on', !!s.options && !state.picked[state.step]);
+  $('#hint').hidden = !s.options;
 
   const last = state.step === STEPS.length - 1;
   $('#back').hidden = state.step === 0;
   const next = $('#next');
   next.hidden = last;
-  next.disabled = !last && !state.picked[state.step];
+  next.disabled = !last && !(s.ready ? s.ready() : state.picked[state.step]);
 
   if (animate) {
     body.classList.remove('is-in');
@@ -184,6 +169,19 @@ $('#stepBody').addEventListener('click', (e) => {
     renderSmeta();
     return;
   }
+  const z = e.target.closest('.cnt__ctl button');
+  if (z) {
+    const zone = z.dataset.zone, d = +z.dataset.d;
+    if (!addCam(zone, d)) return;
+    state.picked[state.step] = counts(state).total > 0;
+    renderStep();
+    const card = $(`#stepBody .cnt__card[data-zone="${zone}"]`);
+    const again = card.querySelector(`button[data-d="${d}"]`);
+    (again.disabled ? card.querySelector('button[data-d="1"]') : again).focus({ preventScroll: true });
+    if (d > 0 && card.querySelector('.cnt__row img:last-child')) card.querySelector('.cnt__row img:last-child').classList.add('is-new');
+    renderSmeta();
+    return;
+  }
   const b = e.target.closest('.stepper button');
   if (b) {
     const key = b.closest('.stepper').dataset.key, d = +b.dataset.d;
@@ -198,8 +196,66 @@ $('#stepsBar').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-step]');
   if (b && !b.disabled) go(+b.dataset.step);
 });
-$('#next').addEventListener('click', () => go(state.step + 1));
+$('#next').addEventListener('click', () => {
+  if (STEPS[state.step].ready) state.picked[state.step] = true;
+  go(state.step + 1);
+});
 $('#back').addEventListener('click', () => go(state.step - 1));
+
+// ---------- шаг «Сколько камер и где?» ----------
+// Счётчики «снаружи / внутри» — это те же точки схемы + «ещё камеры, которых нет на схеме»:
+// «+» ставит камеру в следующую свободную точку (сначала base, потом остальные), точки кончились — в «ещё».
+// «−» сначала убирает из «ещё», потом последнюю точку. На схеме в шаге 5 их можно передвинуть.
+
+const EXTRA = { out: 'extraOut', in: 'extraIn' };
+
+function zoneOrder(plan, zone) {
+  const p = PLANS[plan], base = p.base[zone];
+  const rest = p.slots.map((s, i) => (s.t === zone && !base.includes(i) ? i : -1)).filter((i) => i >= 0);
+  return [...base, ...rest];
+}
+
+function addCam(zone, d) {
+  const on = state.on[state.plan], order = zoneOrder(state.plan, zone), ex = EXTRA[zone];
+  if (d > 0) {
+    if (!canAdd()) return false;
+    const free = order.find((i) => !on.has(i));
+    free === undefined ? state[ex]++ : on.add(free);
+    return true;
+  }
+  if (state[ex] > 0) { state[ex]--; return true; }
+  const last = [...order].reverse().find((i) => on.has(i));
+  if (last === undefined) return false;
+  on.delete(last);
+  return true;
+}
+
+// кадр фото — то же правило, что в редакторе drafts/step2.html
+const photoStyle = ({ pos: [x, y], zoom }) => `object-position:${x}% ${y}%;transform-origin:${x}% ${y}%;transform:scale(${zoom})`;
+
+function renderZones() {
+  const p = PLANS[state.plan], c = counts(state);
+  const n = { out: c.out, in: c.inn };
+  return `<div class="cnt">${['out', 'in'].map((zone) => {
+    const z = p.zones[zone], k = n[zone], name = z.t.toLowerCase();
+    return `
+    <div class="cnt__card${k ? ' is-on' : ''}" data-zone="${zone}">
+      <div class="cnt__photo" aria-hidden="true"><img src="assets/photos/${z.photo}.webp" alt="" style="${photoStyle(z)}"></div>
+      <div class="cnt__main">
+        <span class="cnt__cam" aria-hidden="true">${CAM_IMG}</span>
+        <b class="cnt__t" id="zone-${zone}">${z.t}</b>
+        <span class="cnt__d">${z.d}</span>
+      </div>
+      <div class="cnt__row" aria-hidden="true">${CAM_IMG.repeat(k)}</div>
+      <div class="cnt__ctl" role="group" aria-labelledby="zone-${zone}">
+        <button type="button" data-zone="${zone}" data-d="-1" aria-label="Убрать камеру ${name}"${k ? '' : ' disabled'}>−</button>
+        <output class="cnt__n" aria-live="polite"><span>${k}</span><small>${plural(k, 'камера', 'камеры', 'камер')}</small></output>
+        <button type="button" data-zone="${zone}" data-d="1" aria-label="Добавить камеру ${name}">+</button>
+      </div>
+    </div>`;
+  }).join('')}</div>
+  <div class="cnt-sum">${CAM_IMG}<span>Всего: ${camsWord(c.total)}</span></div>`;
+}
 
 // ---------- план ----------
 
@@ -345,12 +401,6 @@ function waLink(e) {
 const STORE = 'baqyla-calc-v1';
 const DAYS = [7, 14, 30], CABLES = [10, 15, 25];
 
-const whereOf = (plan, set) => {
-  const b = PLANS[plan].base;
-  const inn = [...set].some((i) => b.in.includes(i));
-  const out = [...set].some((i) => !b.in.includes(i));
-  return inn && out ? 'all' : inn ? 'in' : 'out';
-};
 const int = (v, max) => (Number.isInteger(+v) && +v >= 0 && +v <= max ? +v : null);
 const slotSet = (plan, list) => new Set(list.map(Number).filter((i) => Number.isInteger(i) && i >= 0 && i < PLANS[plan].slots.length));
 
@@ -370,7 +420,6 @@ function load() {
   const next = fresh();
   for (const k in PLANS) if (Array.isArray(d.on && d.on[k])) next.on[k] = slotSet(k, d.on[k]);
   next.plan = d.plan;
-  next.where = ['out', 'in', 'all'].includes(d.where) ? d.where : whereOf(d.plan, next.on[d.plan]);
   next.days = DAYS.includes(d.days) ? d.days : next.days;
   next.cable = CABLES.includes(d.cable) ? d.cable : PLANS[d.plan].cable;
   next.extraOut = int(d.extraOut, PRICE.maxCams) ?? 0;
@@ -409,7 +458,6 @@ function applyUrl() {
   const next = fresh();
   next.plan = plan;
   next.on[plan] = on;
-  next.where = whereOf(plan, on);
   next.extraOut = int(q.get('out') || 0, PRICE.maxCams) ?? 0;
   next.extraIn = int(q.get('in') || 0, PRICE.maxCams) ?? 0;
   next.days = DAYS.includes(+q.get('days')) ? +q.get('days') : next.days;
