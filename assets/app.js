@@ -102,7 +102,8 @@ const STEPS = [
 const HAND = `<div class="hand" aria-hidden="true"><svg width="44" height="44" viewBox="0 0 24 24" fill="#fff" stroke="#0E1218" stroke-width="1.4" stroke-linejoin="round"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10m0-.5V9a1.5 1.5 0 0 1 3 0v1.5m0 0a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1.2a5 5 0 0 1-3.9-1.9L4.6 16a1.5 1.5 0 0 1 2.3-1.9L9 16.5V11"/></svg><span>Нажмите на карточку</span></div>`;
 
 const TICK = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
-const ARROW = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+// пунктир со стрелкой: впереди пунктир, пройденный участок — сплошная синяя линия
+const ARROW = '<svg viewBox="0 0 44 14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path class="steps-bar__line" d="M2 7h34"/><path d="M34 2l6 5-6 5"/></svg>';
 
 function renderStepsBar() {
   $('#stepsBar').innerHTML = STEPS.map((s, i) => {
