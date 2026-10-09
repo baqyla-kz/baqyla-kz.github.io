@@ -8,7 +8,7 @@
   <meta property="og:title" content="Baqyla — видеонаблюдение в Уральске">
   <meta property="og:description" content="Отметьте камеры на плане — стоимость посчитается сразу.">
   <meta property="og:image" content="assets/og.jpg">
-  <meta name="theme-color" content="#0A0C10">
+  <meta name="theme-color" content="#FFFFFF">
   <link rel="icon" href="assets/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,26 +18,23 @@
 <body>
   <header class="top">
     <div class="wrap top__in">
-      <a class="brand" href="#" aria-label="Baqyla — наверх">
+      <a class="brand" href="index.html" aria-label="Baqyla — на главную">
         <img src="assets/mark.png" alt="" width="34" height="34">
         <span class="brand__word">BA<b>Q</b>YLA</span>
       </a>
       <nav class="nav" aria-label="Разделы">
-        <a href="#calc">Расчёт</a>
-        <a href="#kits">Комплекты</a>
-        <a href="#process">Как работаем</a>
-        <a href="#faq">Вопросы</a>
+        <a href="index.html" aria-current="page">Расчёт</a>
+        <a href="kits.html">Комплекты</a>
       </nav>
       <a class="top__phone" href="tel:+77089804260">+7 708 980 42 60</a>
-      <a class="btn btn--wa btn--sm" href="https://wa.me/77089804260" target="_blank" rel="noopener">WhatsApp</a>
+      <a class="btn btn--wa btn--sm top__wa" href="https://wa.me/77089804260" target="_blank" rel="noopener" aria-label="Написать в WhatsApp"><span>WhatsApp</span></a>
     </div>
   </header>
 
   <main>
     <section class="hero wrap">
       <p class="eyebrow"><span class="rec" aria-hidden="true"></span>Уральск · монтаж видеонаблюдения</p>
-      <h1>Отметьте на плане, где нужны камеры. Цена посчитается сразу.</h1>
-      <p class="hero__sub">Ставим камеры в частных домах, магазинах и крестьянских хозяйствах. Настраиваем просмотр с телефона и полгода обслуживаем бесплатно.</p>
+      <h1>Расчёт стоимости</h1>
     </section>
 
     <section id="calc" class="calc wrap" aria-label="Расчёт стоимости">
@@ -103,49 +100,10 @@
           <span>Итого под ключ</span>
           <strong id="total">0 ₸</strong>
         </div>
-        <p class="smeta__note">Цена предварительная. Точную сумму назовём после осмотра объекта. Гарантия на монтаж — 12 месяцев, обслуживание — 6 месяцев бесплатно.</p>
+        <p class="smeta__note">Цена предварительная — точную сумму назовём после осмотра объекта.</p>
         <a class="btn btn--wa btn--block" id="send" href="#" target="_blank" rel="noopener">Отправить расчёт в WhatsApp</a>
         <a class="btn btn--ghost btn--block" href="tel:+77089804260">Позвонить</a>
       </aside>
-    </section>
-
-    <section id="kits" class="section wrap">
-      <h2>Готовые комплекты</h2>
-      <p class="section__sub">С них начинают чаще всего. Откройте комплект в расчёте и поменяйте под себя.</p>
-      <div class="kits" id="kitsList"></div>
-    </section>
-
-    <section id="process" class="section wrap">
-      <h2>Как работаем</h2>
-      <ol class="steps">
-        <li><b>Заявка</b><span>Пишете в WhatsApp или звоните. Можно сразу прислать расчёт с сайта.</span></li>
-        <li><b>Осмотр</b><span>Приезжаем, смотрим объект, уточняем, где встанут камеры и как пройдёт кабель.</span></li>
-        <li><b>Монтаж</b><span>Ставим камеры и регистратор, прокладываем кабель в гофре, проверяем каждую точку.</span></li>
-        <li><b>Телефон</b><span>Настраиваем просмотр с телефона и показываем, как смотреть архив.</span></li>
-        <li><b>Обслуживание</b><span>Шесть месяцев после сдачи обслуживаем бесплатно. Гарантия на монтаж — год.</span></li>
-      </ol>
-    </section>
-
-    <section id="faq" class="section wrap">
-      <h2>Вопросы</h2>
-      <div class="faq">
-        <details>
-          <summary>Будет ли видно ночью?</summary>
-          <p>Уличные камеры ColorVu снимают ночью в цвете — при слабом свете от фонаря или окна. В полной темноте нужна подсветка, подскажем на осмотре.</p>
-        </details>
-        <details>
-          <summary>Нужен ли интернет?</summary>
-          <p>Запись идёт на диск в регистраторе и без интернета. Интернет нужен только чтобы смотреть камеры с телефона.</p>
-        </details>
-        <details>
-          <summary>Сколько хранится запись?</summary>
-          <p>Зависит от числа камер и объёма диска. В расчёте выберите, сколько дней хранить, — диск подберётся сам. Когда место кончается, старая запись стирается автоматически.</p>
-        </details>
-        <details>
-          <summary>Почему цена предварительная?</summary>
-          <p>Длину кабеля и сложность прокладки видно только на месте. После осмотра пришлём точную смету — обычно она близка к расчёту с сайта.</p>
-        </details>
-      </div>
     </section>
   </main>
 
@@ -169,6 +127,7 @@
     <a class="btn btn--wa btn--sm" id="mSend" href="#" target="_blank" rel="noopener" tabindex="-1">В WhatsApp</a>
   </div>
 
+  <script src="assets/data.js"></script>
   <script src="assets/app.js"></script>
 </body>
 </html>
