@@ -173,6 +173,10 @@ h1 {
   .steps-bar .is-now { padding-right: 10px; }
   .steps-bar__arrow svg { width: 8px; }
 }
+/* второй вопрос на том же шаге (например, «Есть интернет?» под архивом) */
+.q.q--sub { margin: 32px 0 16px; font-size: clamp(20px, 2.1vw, 26px); }
+/* у второго вопроса карточки ниже: картинка меньше */
+.choices--more .o__img { width: clamp(72px, 34cqi, 120px); margin-bottom: 8px; }
 .q-row { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 16px; margin-bottom: 18px; }
 .q { margin: 0; font: 700 clamp(22px, 2.4vw, 30px)/1.2 var(--f-display); outline: none; }
 /* подсказка рядом с вопросом: рука показывает вниз, на карточки; ничего не перекрывает */
@@ -441,6 +445,8 @@ h1 {
 .smeta__total strong { font: 700 clamp(26px, 3vw, 30px)/1 var(--f-display); letter-spacing: -.01em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .smeta__note { margin: 14px 0 18px; font-size: 13px; color: var(--muted); }
 .smeta .btn + .btn { margin-top: 8px; }
+.smeta__net { margin-top: -6px; padding: 10px 12px; border-radius: 10px; background: #FFF7E6; color: #7A5300; }
+.smeta__net[hidden] { display: none; }
 
 /* ---------- комплекты ---------- */
 .kits { display: grid; gap: 16px; max-width: 1400px; padding-bottom: 72px; }

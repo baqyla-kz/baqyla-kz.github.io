@@ -9,6 +9,8 @@ const fresh = () => ({
   extraOut: 0,
   extraIn: 0,
   days: 14,
+  daysSet: false, // архив выбран сам (14 — только значение по умолчанию)
+  net: null, // интернет на объекте: 'yes' | 'no' | null — ещё не ответили
   cable: 15,
 });
 const state = fresh();
@@ -54,7 +56,7 @@ const STEPS = [
     render: () => renderZones(),
   },
   {
-    name: 'Архив',
+    name: 'Запись и интернет',
     q: 'Сколько дней хранить запись?',
     options: () => [7, 14, 30].map((d) => {
       const e = estimate({ ...state, days: d });
@@ -64,7 +66,19 @@ const STEPS = [
         html: `${big(d, plural(d, 'день', 'дня', 'дней'))}<b>${d === 7 ? 'Неделю' : d === 14 ? 'Две недели' : 'Месяц'}</b><small>${disk ? disk.name.replace('Жёсткий диск', 'Диск') + (disk.qty > 1 ? ` × ${disk.qty}` : '') : ''}</small>`,
       };
     }),
-    pick: (v) => (state.days = v),
+    isSet: () => state.daysSet,
+    pick: (v) => { state.days = v; state.daysSet = true; },
+    // второй вопрос на том же шаге; на цену пока не влияет — уходит в сообщение и пояснение под сметой
+    more: {
+      q: 'Есть интернет на объекте?',
+      options: () => [
+        ['yes', 'wifi', 'Есть интернет', 'Камеры можно смотреть с телефона откуда угодно'],
+        ['no', 'wifi-off', 'Нет интернета', 'Запись идёт на диск, смотреть — на месте'],
+      ].map(([v, ic, t, d]) => ({ v, on: state.net === v, html: `${icon(ic)}<b>${t}</b><small>${d}</small>` })),
+      isSet: () => state.net !== null,
+      pick: (v) => (state.net = v),
+    },
+    ready: () => state.daysSet && state.net !== null,
   },
   {
     name: 'Расстояние',
@@ -105,10 +119,12 @@ function renderStep(animate) {
   if (s.render) {
     body.innerHTML = s.render();
   } else if (s.options) {
-    const opts = s.options();
-    const picked = state.picked[state.step];
-    body.innerHTML = `<div class="choices">${opts.map((o) =>
-      `<button type="button" class="o" data-v="${o.v}" aria-pressed="${picked && o.on}"><span class="o__ribbon">✓ Выбрано</span><span class="o__check"></span>${o.html}</button>`).join('')}</div>`;
+    const group = (g, id) => {
+      const set = g.isSet ? g.isSet() : state.picked[state.step];
+      return `<div class="choices${id === 'more' ? ' choices--more' : ''}" data-group="${id}">${g.options().map((o) =>
+        `<button type="button" class="o" data-v="${o.v}" aria-pressed="${set && o.on}"><span class="o__ribbon">✓ Выбрано</span><span class="o__check"></span>${o.html}</button>`).join('')}</div>`;
+    };
+    body.innerHTML = group(s, 'main') + (s.more ? `<h3 class="q q--sub">${s.more.q}</h3>${group(s.more, 'more')}` : '');
   } else {
     body.innerHTML = `
       <div class="monitor">
@@ -160,12 +176,13 @@ $('#stepBody').addEventListener('click', (e) => {
   const o = e.target.closest('.o');
   if (o) {
     const s = STEPS[state.step];
+    const id = o.closest('[data-group]').dataset.group;
     const raw = o.dataset.v;
-    s.pick(isNaN(+raw) ? raw : +raw);
-    state.picked[state.step] = true;
+    (id === 'more' ? s.more : s).pick(isNaN(+raw) ? raw : +raw);
+    state.picked[state.step] = s.ready ? s.ready() : true;
     // перерисовать карточки (подписи зависят от выбора), выбранную — с анимацией
     renderStep();
-    const again = $(`#stepBody .o[data-v="${raw}"]`);
+    const again = $(`#stepBody [data-group="${id}"] .o[data-v="${raw}"]`);
     if (again) { again.classList.add('is-pop'); again.focus({ preventScroll: true }); }
     renderSmeta();
     return;
@@ -376,6 +393,7 @@ function renderSmeta() {
   $('#mSend').href = href;
   $('#send').classList.toggle('is-disabled', !e.c.total);
   $('#share').hidden = !e.c.total;
+  $('#netNote').hidden = !(e.c.total && state.net === 'no');
   $('#reset').hidden = !state.plan;
   save(); // смета перерисовывается после любого изменения — тут же и сохраняем
 }
@@ -392,6 +410,7 @@ function waLink(e) {
     `Камер: ${e.c.total} (уличных ${e.c.out}, внутренних ${e.c.inn})`,
     places.length ? `Где: ${places.join(', ')}${extra}` : '',
     `Архив: ${state.days} дней, кабель ~${state.cable} м на камеру`,
+    state.net ? `Интернет на объекте: ${state.net === 'yes' ? 'есть' : 'нет'}` : '',
     `Предварительно: ${fmt(e.total)}`,
     location.protocol.startsWith('http') ? `Схема: ${shareUrl()}` : '',
     'Хочу точный расчёт.',
@@ -404,7 +423,7 @@ function waLink(e) {
 // «Поделиться» даёт ссылку ?obj=home&cams=1.2.3.4&… — по ней открывается та же схема.
 
 const STORE = 'baqyla-calc-v1';
-const DAYS = [7, 14, 30], CABLES = [10, 15, 25];
+const DAYS = [7, 14, 30], CABLES = [10, 15, 25], NETS = ['yes', 'no'];
 
 const int = (v, max) => (Number.isInteger(+v) && +v >= 0 && +v <= max ? +v : null);
 const slotSet = (plan, list) => new Set(list.map(Number).filter((i) => Number.isInteger(i) && i >= 0 && i < PLANS[plan].slots.length));
@@ -426,12 +445,15 @@ function load() {
   for (const k in PLANS) if (Array.isArray(d.on && d.on[k])) next.on[k] = slotSet(k, d.on[k]);
   next.plan = d.plan;
   next.days = DAYS.includes(d.days) ? d.days : next.days;
+  next.daysSet = d.daysSet === true || (d.daysSet === undefined && Array.isArray(d.picked) && d.picked[2] === true); // сохранено до вопроса про интернет
+  next.net = NETS.includes(d.net) ? d.net : null;
   next.cable = CABLES.includes(d.cable) ? d.cable : PLANS[d.plan].cable;
   next.extraOut = int(d.extraOut, PRICE.maxPerZone) ?? 0;
   next.extraIn = int(d.extraIn, PRICE.maxPerZone) ?? 0;
   if (tooMany(next)) return false;
   if (Array.isArray(d.picked)) next.picked = next.picked.map((_, i) => d.picked[i] === true);
   next.picked[0] = true;
+  next.picked[2] = next.picked[2] && next.daysSet && next.net !== null; // шаг 3 пройден, только если ответили на оба вопроса
   // дальше первого невыбранного шага не пускаем — как и кнопки в полосе шагов
   const open = next.picked.indexOf(false);
   next.step = Math.min(int(d.step, STEPS.length - 1) ?? 0, open < 0 ? STEPS.length - 1 : open);
@@ -444,6 +466,7 @@ function shareUrl() {
   if (state.extraOut) p.set('out', state.extraOut);
   if (state.extraIn) p.set('in', state.extraIn);
   p.set('days', state.days);
+  if (state.net) p.set('net', state.net);
   p.set('cable', state.cable);
   return `${location.href.split(/[?#]/)[0]}?${p}`;
 }
@@ -466,6 +489,8 @@ function applyUrl() {
   next.extraOut = int(q.get('out') || 0, PRICE.maxPerZone) ?? 0;
   next.extraIn = int(q.get('in') || 0, PRICE.maxPerZone) ?? 0;
   next.days = DAYS.includes(+q.get('days')) ? +q.get('days') : next.days;
+  next.daysSet = true;
+  next.net = NETS.includes(q.get('net')) ? q.get('net') : null;
   next.cable = CABLES.includes(+q.get('cable')) ? +q.get('cable') : PLANS[plan].cable;
   if (tooMany(next)) next.extraOut = next.extraIn = 0;
   next.picked = [true, true, true, true];
