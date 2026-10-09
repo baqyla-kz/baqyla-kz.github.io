@@ -366,7 +366,7 @@ h1 {
 .smeta .btn + .btn { margin-top: 8px; }
 
 /* ---------- комплекты ---------- */
-.kits { display: grid; gap: 16px; max-width: 1400px; }
+.kits { display: grid; gap: 16px; max-width: 1400px; padding-bottom: 72px; }
 @media (min-width: 860px) { .kits { grid-template-columns: repeat(3, 1fr); } }
 .kit { display: flex; flex-direction: column; padding: 24px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); }
 .kit__top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
@@ -379,14 +379,6 @@ h1 {
 .kit__foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid var(--line); }
 .kit__foot small { color: var(--muted); font-size: 13px; }
 .kit__price { font: 700 24px/1.2 var(--f-display); white-space: nowrap; }
-
-/* ---------- подвал ---------- */
-.foot { margin-top: 56px; padding: 28px 0 96px; border-top: 1px solid var(--line); background: var(--panel); }
-@media (min-width: 1000px) { .foot { padding-bottom: 32px; } }
-.foot__in { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; }
-.foot__links { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 14px; color: var(--muted); }
-.foot__links a { text-decoration: none; }
-.foot__links a:hover { color: var(--text); }
 
 /* ---------- телефон: итог внизу ---------- */
 .mbar {
