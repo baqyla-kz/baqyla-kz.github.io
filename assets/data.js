@@ -34,8 +34,9 @@ const PRICE = {
 const PLANS = {
   home: {
     tab: 'Дом',
-    title: 'ДОМ',
+    title: 'ЧАСТНЫЙ ДОМ',
     cable: 15,
+    base: { out: [0, 1, 2, 3], in: [6, 7] }, // что ставим по умолчанию, когда клиент выбрал «снаружи» / «внутри»
     draw: `
       <path class="p-fence" d="M260 420 H20 V20 H620 V420 H360"/>
       <text class="p-label" x="310" y="434" text-anchor="middle">ВОРОТА</text>
@@ -59,10 +60,43 @@ const PLANS = {
       { x: 375, y: 132, a: 90, t: 'in', l: 'гостиная' },
     ],
   },
+  flats: {
+    tab: 'Многоквартирный',
+    title: 'МНОГОКВАРТИРНЫЙ ДОМ',
+    cable: 25,
+    base: { out: [0, 1, 2, 3], in: [6, 7] },
+    draw: `
+      <path class="p-fence" d="M540 420 H20 V20 H620 V420 H610"/>
+      <text class="p-label" x="575" y="434" text-anchor="middle">ВЪЕЗД</text>
+      <rect class="p-build" x="60" y="40" width="520" height="110"/>
+      <path class="p-wall" d="M233 40 V150 M407 40 V150"/>
+      <path class="p-door" d="M135 150 H165 M305 150 H335 M475 150 H505"/>
+      <text class="p-label" x="150" y="100" text-anchor="middle">ПОДЪЕЗД 1</text>
+      <text class="p-label" x="320" y="100" text-anchor="middle">ПОДЪЕЗД 2</text>
+      <text class="p-label" x="490" y="100" text-anchor="middle">ПОДЪЕЗД 3</text>
+      <path class="p-drive" d="M40 260 H190 M40 310 H190 M40 360 H190 M90 230 V400 M140 230 V400"/>
+      <text class="p-label" x="115" y="220" text-anchor="middle">ПАРКОВКА</text>
+      <rect class="p-pen" x="250" y="220" width="190" height="120"/>
+      <text class="p-label" x="345" y="285" text-anchor="middle">ДЕТСКАЯ ПЛОЩАДКА</text>
+      <rect class="p-build p-build--minor" x="470" y="330" width="56" height="30"/>
+      <text class="p-label" x="498" y="374" text-anchor="middle">БАКИ</text>
+    `,
+    slots: [
+      { x: 150, y: 150, a: 90, t: 'out', l: 'подъезд 1' },
+      { x: 320, y: 150, a: 90, t: 'out', l: 'подъезд 2' },
+      { x: 490, y: 150, a: 90, t: 'out', l: 'подъезд 3' },
+      { x: 60, y: 150, a: 120, t: 'out', l: 'парковка' },
+      { x: 580, y: 150, a: 140, t: 'out', l: 'детская площадка' },
+      { x: 600, y: 300, a: 100, t: 'out', l: 'въезд' },
+      { x: 150, y: 52, a: 90, t: 'in', l: 'холл подъезда' },
+      { x: 320, y: 52, a: 90, t: 'in', l: 'лифт' },
+    ],
+  },
   business: {
     tab: 'Бизнес',
-    title: 'МАГАЗИН',
+    title: 'КОММЕРЧЕСКИЙ ОБЪЕКТ',
     cable: 15,
+    base: { out: [0, 1, 2, 3], in: [4, 5, 6, 7] },
     draw: `
       <rect class="p-street" x="0" y="392" width="640" height="48"/>
       <text class="p-label" x="320" y="421" text-anchor="middle">УЛИЦА</text>
@@ -87,35 +121,14 @@ const PLANS = {
       { x: 452, y: 72, a: 40, t: 'in', l: 'склад' },
     ],
   },
-  farm: {
-    tab: 'Хозяйство',
-    title: 'КРЕСТЬЯНСКОЕ ХОЗЯЙСТВО',
-    cable: 25,
-    draw: `
-      <path class="p-fence" d="M520 420 H20 V20 H620 V420 H600"/>
-      <text class="p-label" x="560" y="434" text-anchor="middle">ВОРОТА</text>
-      <rect class="p-build" x="60" y="60" width="280" height="110"/>
-      <path class="p-wall" d="M130 60 V170 M200 60 V170 M270 60 V170"/>
-      <text class="p-label" x="200" y="48" text-anchor="middle">КОРОВНИК</text>
-      <rect class="p-build p-build--minor" x="400" y="60" width="180" height="90"/>
-      <text class="p-label" x="490" y="110" text-anchor="middle">СКЛАД КОРМОВ</text>
-      <rect class="p-pen" x="60" y="220" width="280" height="150"/>
-      <text class="p-label" x="200" y="300" text-anchor="middle">ЗАГОН</text>
-      <rect class="p-build p-build--minor" x="430" y="250" width="110" height="80"/>
-      <text class="p-label" x="485" y="294" text-anchor="middle">СТОРОЖКА</text>
-    `,
-    slots: [
-      { x: 540, y: 330, a: 50, t: 'out', l: 'ворота' },
-      { x: 60, y: 370, a: 315, t: 'out', l: 'загон' },
-      { x: 580, y: 150, a: 60, t: 'out', l: 'двор' },
-      { x: 430, y: 250, a: 210, t: 'out', l: 'техника' },
-      { x: 200, y: 170, a: 90, t: 'out', l: 'вход в коровник' },
-      { x: 72, y: 115, a: 0, t: 'in', l: 'коровник' },
-      { x: 328, y: 115, a: 180, t: 'in', l: 'коровник' },
-      { x: 412, y: 105, a: 0, t: 'in', l: 'склад кормов' },
-    ],
-  },
 };
+
+// Шаг 1 расчёта: какой объект. icon — файл в assets/icons/.
+const OBJECTS = [
+  { plan: 'home', icon: 'house', t: 'Частный дом', d: 'Дом, дача, участок' },
+  { plan: 'flats', icon: 'apartments', t: 'Многоквартирный дом', d: 'Подъезд, двор, парковка' },
+  { plan: 'business', icon: 'office', t: 'Коммерческий объект', d: 'Магазин, офис, кафе, склад' },
+];
 
 const KITS = [
   { name: 'Дом', plan: 'home', on: [0, 1, 2, 3], text: 'Четыре уличные камеры по углам дома' },

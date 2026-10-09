@@ -38,49 +38,13 @@
     </section>
 
     <section id="calc" class="calc wide" aria-label="Расчёт стоимости">
-      <div class="calc__plan">
-        <div class="tabs" role="tablist" aria-label="Тип объекта" id="tabs"></div>
-
-        <div class="monitor">
-          <div class="monitor__bar" aria-hidden="true">
-            <span><span class="rec"></span><span id="planName">ПЛАН · ДОМ</span></span>
-          </div>
-          <svg id="plan" class="plan" viewBox="0 0 640 440" role="group" aria-label="План объекта: нажмите на точку, чтобы поставить камеру"></svg>
-        </div>
-
-        <div class="opts">
-          <div class="opt">
-            <div class="opt__label">Ещё камеры, которых нет на плане</div>
-            <div class="steppers">
-              <div class="stepper" data-key="extraOut">
-                <span>Уличные</span>
-                <button type="button" data-d="-1" aria-label="Убрать уличную камеру">−</button>
-                <output>0</output>
-                <button type="button" data-d="1" aria-label="Добавить уличную камеру">+</button>
-              </div>
-              <div class="stepper" data-key="extraIn">
-                <span>Внутренние</span>
-                <button type="button" data-d="-1" aria-label="Убрать внутреннюю камеру">−</button>
-                <output>0</output>
-                <button type="button" data-d="1" aria-label="Добавить внутреннюю камеру">+</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="opt">
-            <div class="opt__label" id="archLabel">Сколько дней хранить запись</div>
-            <div class="seg" role="radiogroup" aria-labelledby="archLabel" id="archive">
-              <button type="button" role="radio" data-v="7">7 дней</button>
-              <button type="button" role="radio" data-v="14">14 дней</button>
-              <button type="button" role="radio" data-v="30">30 дней</button>
-            </div>
-          </div>
-
-          <div class="opt">
-            <label class="opt__label" for="cable">Кабель до одной камеры, в среднем <b id="cableOut">15 м</b></label>
-            <input type="range" id="cable" min="5" max="50" step="5" value="15">
-            <div class="range__ends"><span>5 м</span><span>50 м</span></div>
-          </div>
+      <div class="wiz" id="wiz">
+        <nav class="steps-bar" id="stepsBar" aria-label="Шаги расчёта"></nav>
+        <h2 class="q" id="q" tabindex="-1"></h2>
+        <div id="stepBody"></div>
+        <div class="wiz__nav">
+          <button type="button" class="btn btn--ghost" id="back">Назад</button>
+          <button type="button" class="btn btn--primary" id="next">Дальше</button>
         </div>
       </div>
 
