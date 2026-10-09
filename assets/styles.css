@@ -93,8 +93,8 @@ button { font: inherit; color: inherit; }
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.3-.5 0-1 .2-3.3-.7-2.8-1.1-4.5-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.3.5-.4.5c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.5.1.6-.1l.9-1.1c.2-.3.4-.2.7-.1l2 1c.3.1.5.2.5.3.1.2.1.7-.1 1.3Z'/%3E%3C/svg%3E") center / contain no-repeat;
           mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.3-.5 0-1 .2-3.3-.7-2.8-1.1-4.5-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.3.5-.4.5c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.5.1.6-.1l.9-1.1c.2-.3.4-.2.7-.1l2 1c.3.1.5.2.5.3.1.2.1.7-.1 1.3Z'/%3E%3C/svg%3E") center / contain no-repeat;
 }
-.btn--ghost { background: transparent; border-color: var(--line); color: var(--text); }
-.btn--ghost:hover { border-color: var(--faint); }
+.btn--ghost { background: #fff; border: 2px solid #AEB7C4; color: var(--text); }
+.btn--ghost:hover { border-color: var(--text); }
 .btn.is-disabled { opacity: .45; pointer-events: none; }
 
 /* ---------- первый экран ---------- */
@@ -120,7 +120,7 @@ h1 {
 
 /* ---------- калькулятор ---------- */
 .calc {
-  display: grid; gap: 20px;
+  display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr);
   padding-bottom: 72px;
 }
 @media (min-width: 1000px) {
@@ -130,19 +130,39 @@ h1 {
 /* ---------- пошаговый расчёт ---------- */
 .wiz { min-width: 0; padding: 22px; background: #E4E9F0; border-radius: 22px; }
 @media (max-width: 600px) { .wiz { padding: 14px; border-radius: 18px; } }
-.steps-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+.steps-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 20px; }
 .steps-bar button {
-  display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px 0 6px;
-  border: 0; border-radius: 999px; background: rgba(255, 255, 255, .55);
-  color: var(--faint); font-size: 13px; font-weight: 500; cursor: pointer;
+  display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 16px 0 6px;
+  border: 0; border-radius: 999px; background: #fff; color: #4A5262;
+  font-size: 15px; font-weight: 600; cursor: pointer;
+  box-shadow: 0 1px 2px rgba(14, 18, 24, .08);
+  transition: background .2s, color .2s;
 }
-.steps-bar button:disabled { cursor: default; opacity: .7; }
-.steps-bar b { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #fff; font: 500 11px var(--f-mono); color: var(--muted); }
-.steps-bar .is-done { color: var(--text); }
+.steps-bar button:disabled { cursor: default; }
+.steps-bar b { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: #E4E9F0; font: 700 14px var(--f-display); color: #4A5262; }
+.steps-bar .is-later { opacity: .75; }
+.steps-bar .is-done { background: #DCE8FC; color: var(--signal); }
 .steps-bar .is-done b { background: var(--signal); color: #fff; }
-.steps-bar .is-done:hover { background: #fff; }
-.steps-bar .is-now { background: #fff; color: var(--text); box-shadow: 0 1px 2px rgba(14, 18, 24, .08); }
-.steps-bar .is-now b { background: var(--text); color: #fff; }
+.steps-bar .is-done:hover { background: #CCDDFB; }
+.steps-bar .is-now { background: var(--text); color: #fff; }
+.steps-bar .is-now b { background: #fff; color: var(--text); }
+.steps-bar__arrow { display: grid; place-items: center; color: #9AA4B3; }
+.steps-bar__arrow.is-passed { color: var(--signal); }
+@media (max-width: 760px) {
+  /* на телефоне у непройденных/пройденных шагов только номер — все пять в одну строку */
+  .steps-bar { gap: 3px; flex-wrap: nowrap; }
+  .steps-bar button { height: 36px; padding: 0 4px; gap: 8px; font-size: 14px; flex: none; }
+  .steps-bar b { width: 28px; height: 28px; font-size: 13px; }
+  .steps-bar .is-now { padding-right: 14px; }
+  .steps-bar button:not(.is-now) .steps-bar__name { display: none; }
+  .steps-bar__arrow svg { width: 14px; height: 14px; }
+}
+@media (max-width: 380px) {
+  .steps-bar { gap: 1px; }
+  .steps-bar button { padding: 0 3px; }
+  .steps-bar .is-now { padding-right: 10px; }
+  .steps-bar__arrow svg { width: 11px; }
+}
 .q { margin: 0 0 18px; font: 700 clamp(22px, 2.4vw, 30px)/1.2 var(--f-display); outline: none; }
 .wiz__nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 22px; }
 .wiz__nav .btn { min-width: 160px; }
@@ -308,8 +328,8 @@ h1 {
 .smeta {
   padding: 22px;
   background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--r);
+  border-radius: 22px;
+  box-shadow: 0 2px 4px rgba(14, 18, 24, .04), 0 24px 60px rgba(14, 18, 24, .14);
 }
 @media (min-width: 1000px) { .smeta { position: sticky; top: 84px; } }
 .smeta__head { padding-bottom: 14px; }
@@ -318,7 +338,7 @@ h1 {
 .smeta__empty { margin: 18px 0; color: var(--muted); font-size: 15px; }
 .ln {
   display: grid; grid-template-columns: 1fr auto; column-gap: 12px;
-  padding: 10px 12px; background: var(--panel-2); border-radius: 10px;
+  padding: 10px 12px; background: var(--bg); border-radius: 10px;
   font-size: 14px;
 }
 .ln__name { grid-column: 1; }
