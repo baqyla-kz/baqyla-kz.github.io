@@ -130,9 +130,10 @@ function renderStep(animate) {
     renderPlan();
   }
 
-  // подсказка у вопроса — пока на шаге с карточками ничего не выбрано
-  $('#hint').classList.toggle('is-on', !!s.options && !state.picked[state.step]);
-  $('#hint').hidden = !s.options;
+  // подсказка у вопроса — только на первом шаге, пока объект не выбран; дальше уже понятно, что карточки нажимаются
+  const hint = state.step === 0;
+  $('#hint').classList.toggle('is-on', hint && !state.picked[0]);
+  $('#hint').hidden = !hint;
 
   const last = state.step === STEPS.length - 1;
   $('#back').hidden = state.step === 0;
