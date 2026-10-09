@@ -21,7 +21,7 @@
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-padding-top: 88px; }
+html { scroll-behavior: smooth; scroll-padding-top: 80px; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 body {
   margin: 0;
@@ -48,10 +48,8 @@ button { font: inherit; color: inherit; }
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--line);
 }
-.top__in { display: flex; align-items: center; gap: 24px; height: 68px; }
+.top__in { display: flex; align-items: center; gap: 24px; height: 64px; }
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-/* камера из оригинального логотипа (без фона) + надпись */
-.brand__cam { height: 45px; width: auto; filter: drop-shadow(0 1px 1.5px rgba(14, 18, 24, .25)); }
 .brand__word { font: 700 18px/1 var(--f-display); letter-spacing: .14em; }
 .brand__word b { color: var(--signal); font-weight: 700; }
 .nav { display: flex; gap: 4px; margin-left: 8px; }
@@ -68,7 +66,6 @@ button { font: inherit; color: inherit; }
 /* узкий телефон: логотип без слова, WhatsApp — одной иконкой */
 @media (max-width: 520px) {
   .top__in { gap: 12px; }
-  .brand__cam { height: 38px; }
   .top .brand__word { display: none; }
   .nav { margin-left: 0; }
   .nav a { padding: 8px 10px; }
@@ -346,7 +343,7 @@ h1 {
   border-radius: 22px;
   box-shadow: 0 2px 4px rgba(14, 18, 24, .04), 0 24px 60px rgba(14, 18, 24, .14);
 }
-@media (min-width: 1000px) { .smeta { position: sticky; top: 92px; } }
+@media (min-width: 1000px) { .smeta { position: sticky; top: 84px; } }
 .smeta__head { padding-bottom: 14px; }
 .smeta__title { font: 500 15px var(--f-display); }
 .smeta__lines { display: grid; gap: 6px; }
