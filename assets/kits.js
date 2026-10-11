@@ -2,7 +2,7 @@
 
 document.querySelector('#kitsList').innerHTML = KITS.map((k, i) => {
   const e = estimate({ plan: k.plan, on: { [k.plan]: new Set(k.on) }, extraOut: 0, extraIn: 0, store: k.store, cable: PLANS[k.plan].cable });
-  const main = e.eq.filter((l) => !/Кабель|Коннектор|коробка|Гофра/.test(l.name));
+  const main = e.eq.filter((l) => !l.parts); // «Доп. материалы» — строкой «Кабель, гофра, коннекторы» ниже
   return `
     <article class="kit">
       <div class="kit__top"><h2>${k.name}</h2><span class="kit__n">${e.c.total} ${plural(e.c.total, 'камера', 'камеры', 'камер')}</span></div>

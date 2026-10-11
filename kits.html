@@ -5,9 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Комплекты — Baqyla</title>
   <meta name="description" content="Готовые комплекты видеонаблюдения Baqyla: дом, дом+, бизнес. Цена под ключ с монтажом.">
+  <link rel="canonical" href="https://baqyla.kz/kits.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Baqyla">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:url" content="https://baqyla.kz/kits.html">
   <meta property="og:title" content="Комплекты — Baqyla">
   <meta property="og:description" content="Готовые комплекты видеонаблюдения: дом, дом+, бизнес.">
-  <meta property="og:image" content="assets/og.jpg">
+  <meta property="og:image" content="https://baqyla.kz/assets/og.jpg">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#FFFFFF">
   <link rel="icon" href="assets/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,6 +33,10 @@
         <a href="index.html">Расчёт</a>
         <a href="kits.html" aria-current="page">Комплекты</a>
       </nav>
+      <div class="top__mid">
+        <span class="top__city"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M12 22s-7.5-6.3-7.5-12.1a7.5 7.5 0 0 1 15 0C19.5 15.7 12 22 12 22zm0-9.3a2.8 2.8 0 1 0 0-5.6 2.8 2.8 0 0 0 0 5.6z"/></svg>г.&nbsp;Уральск</span>
+        <p class="top__price">Установка 1 камеры<i aria-hidden="true">—</i><b id="topPrice">15 000 ₸</b></p>
+      </div>
       <a class="top__phone" href="tel:+77089804260">+7 708 980 42 60</a>
       <a class="btn btn--wa btn--sm top__wa" href="https://wa.me/77089804260" target="_blank" rel="noopener" aria-label="Написать в WhatsApp"><span>WhatsApp</span></a>
     </div>
@@ -36,8 +46,10 @@
     <section class="hero wide">
       <h1>Готовые комплекты</h1>
     </section>
-    <section class="wide">
-      <div class="kits" id="kitsList"></div>
+    <!-- комплекты пока не продаём: карточки размыты, поверх «Скоро» -->
+    <section class="wide soon">
+      <div class="kits" id="kitsList" aria-hidden="true" inert></div>
+      <p class="soon__badge">Скоро</p>
     </section>
   </main>
 

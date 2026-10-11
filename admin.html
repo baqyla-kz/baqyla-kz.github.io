@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Baqyla — настройки расчёта</title>
+  <link rel="icon" href="assets/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Rubik:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700&text=BAQYL&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+  <style>
+    body { padding-bottom: 110px; }
+    .adm { max-width: 900px; margin: 0 auto; padding: 32px var(--gut) 0; }
+    .adm h1 { margin: 0 0 6px; font: 700 clamp(26px, 4vw, 34px)/1.15 var(--f-display); }
+    .adm__who { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0 0 24px; color: var(--muted); font-size: 14px; }
+    .adm__who button { padding: 0; border: 0; background: none; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font-size: 14px; }
+    .card { margin-bottom: 18px; padding: 22px; background: var(--panel); border-radius: 18px; box-shadow: 0 1px 2px rgba(14, 18, 24, .05), 0 10px 30px rgba(14, 18, 24, .07); }
+    .card h2 { margin: 0 0 4px; font: 600 19px var(--f-display); }
+    .card > p { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
+    .card h3 { margin: 20px 0 8px; font: 600 15px var(--f-display); }
+    .grid { display: grid; gap: 12px; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+    .grid--3 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); }
+    @media (max-width: 600px) { .grid, .grid--3 { grid-template-columns: minmax(0, 1fr); } }
+    label.f { display: grid; gap: 6px; align-content: end; font-size: 13px; color: var(--muted); } /* поля в ряду — по нижнему краю */
+    .money { display: block; }
+    .in { width: 100%; height: 44px; padding: 0 12px; border: 1.5px solid var(--line); border-radius: 10px; background: #fff; font: 400 15px var(--f-body); color: var(--text); }
+    .in:focus { outline: none; border-color: var(--signal); box-shadow: 0 0 0 3px rgba(31, 111, 229, .15); }
+    .in--num { font-family: var(--f-mono); }
+    .money { position: relative; }
+    .money .in { padding-right: 30px; }
+    .money::after { content: '₸'; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--faint); font-size: 14px; pointer-events: none; }
+    .rule { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 15px; }
+    .rule .in { width: 80px; text-align: center; }
+    .hdd { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); margin-top: 12px; }
+    /* таблица «Доп. материалов» */
+    .mt { display: grid; gap: 8px; }
+    .mt__row { display: grid; gap: 8px; grid-template-columns: minmax(0, 2.4fr) 70px minmax(0, 1.2fr) minmax(0, 1.1fr) 40px; align-items: start; }
+    .mt__head { font-size: 12px; color: var(--faint); }
+    .mt__row:not(.mt__head) label.f > span:first-child { display: none; } /* на широком — подписи в шапке таблицы */
+    .mt__del { width: 40px; height: 44px; border: 0; border-radius: 10px; background: var(--bg); color: var(--muted); font-size: 20px; cursor: pointer; }
+    .mt__del:hover { background: #FDECEC; color: var(--rec); }
+    .mt__per { display: grid; gap: 4px; }
+    .mt__per > label:last-child { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+    .mt__add { justify-self: start; margin-top: 4px; padding: 8px 12px; border: 1.5px dashed var(--line); border-radius: 10px; background: none; color: var(--signal); font-weight: 600; font-size: 14px; cursor: pointer; }
+    @media (max-width: 600px) {
+      .mt__head { display: none; }
+      .mt__row:not(.mt__head) label.f > span:first-child { display: inline; }
+      .mt__row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 10px; background: var(--bg); border-radius: 12px; }
+      .mt__row > :first-child { grid-column: 1 / -1; }
+      .mt__del { justify-self: end; grid-column: 2; }
+    }
+    .bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: rgba(255, 255, 255, .96); border-top: 1px solid var(--line); backdrop-filter: blur(8px); }
+    .bar__in { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 900px; margin: 0 auto; padding: 14px var(--gut); }
+    .msg { margin: 0; font-size: 14px; color: var(--muted); }
+    .msg.is-ok { color: #1A7F4B; }
+    .msg.is-bad { color: var(--rec); }
+    .login { max-width: 380px; margin: 40px auto 0; }
+    .login form { display: grid; gap: 14px; }
+    /* фото «Дополнительно»: рамка как на сайте (.ad__frame из styles.css) */
+    .ph-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+    .ph { display: grid; gap: 10px; align-content: start; padding: 12px; background: var(--bg); border-radius: 16px; }
+    .ph .ad__frame { cursor: grab; touch-action: none; user-select: none; }
+    .ph .ad__frame.is-drag { cursor: grabbing; }
+    .ph .ad__frame img { pointer-events: none; }
+    .ph .ad__half.is-act::after { content: ''; position: absolute; inset: 0; z-index: 4; box-shadow: inset 0 0 0 3px var(--signal); }
+    .ph .ad__half--a.is-act::after { right: 50%; }
+    .ph .ad__half--b.is-act::after { left: 50%; }
+    .ph__t { font: 600 15px var(--f-display); }
+    .ph__zoom { display: grid; grid-template-columns: auto 1fr 44px; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+    .ph__zoom input { width: 100%; accent-color: var(--signal); }
+    .ph__zoom output { font: 500 12px var(--f-mono); text-align: right; }
+    .ph__acts { display: flex; flex-wrap: wrap; gap: 8px; }
+    .ph__acts .btn { height: 36px; padding: 0 12px; font-size: 13px; border-width: 1.5px; }
+    .ph__acts input[type=file] { display: none; }
+    .ph__seg { display: inline-flex; gap: 4px; padding: 3px; background: #fff; border-radius: 10px; justify-self: start; }
+    .ph__seg button { height: 30px; padding: 0 12px; border: 0; border-radius: 8px; background: none; font-weight: 600; font-size: 13px; color: var(--muted); cursor: pointer; }
+    .ph__seg button[aria-pressed="true"] { background: var(--text); color: #fff; }
+    .ph__busy { opacity: .5; pointer-events: none; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="wide top__in">
+      <a class="brand" href="index.html" aria-label="Baqyla — на сайт">
+        <img src="assets/mark.png" alt="" width="34" height="34">
+        <span class="brand__word">BA<b>Q</b>YLA</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="adm">
+    <!-- вход: тот же логин и пароль, что в CRM -->
+    <section class="login card" id="login">
+      <h2>Вход в настройки</h2>
+      <p>Логин и пароль — как в CRM.</p>
+      <form id="loginForm">
+        <label class="f"><span>Логин</span><input class="in" id="lgUser" autocomplete="username" required></label>
+        <label class="f"><span>Пароль</span><input class="in" id="lgPass" type="password" autocomplete="current-password" required></label>
+        <button class="btn btn--primary" id="lgBtn">Войти</button>
+        <p class="msg" id="lgMsg" role="status"></p>
+      </form>
+    </section>
+
+    <div id="editor" hidden>
+      <h1>Настройки расчёта</h1>
+      <div class="adm__who"><span id="who"></span><span id="stamp"></span><button type="button" id="logout">Выйти</button></div>
+
+      <section class="card">
+        <h2>Установка</h2>
+        <p>Цена работы за одну камеру — на всех шагах и для всех объектов.</p>
+        <div class="grid">
+          <label class="f"><span>Наименование</span><input class="in" data-k="install.name"></label>
+          <label class="f"><span>Цена за камеру</span><span class="money"><input class="in in--num" type="number" min="0" step="1" inputmode="numeric" data-k="install.price" data-num></span></label>
+        </div>
+      </section>
+
+      <!-- частный, многоквартирный дом и коммерция: разделы строит admin.js (pathCards) -->
+      <div id="paths"></div>
+
+      <section class="card">
+        <h2>Фото — Дополнительно</h2>
+        <p>Одинаково для всех объектов. Перетащите фото мышью или пальцем, масштаб — ползунком. Новое фото сразу загружается, на сайт попадёт после «Сохранить».</p>
+        <div class="ph-grid" id="phGrid"></div>
+      </section>
+    </div>
+  </main>
+
+  <div class="bar" id="bar" hidden>
+    <div class="bar__in">
+      <p class="msg" id="msg" role="status"></p>
+      <button type="button" class="btn btn--primary" id="save">Сохранить</button>
+    </div>
+  </div>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/admin.js"></script>
+</body>
+</html>

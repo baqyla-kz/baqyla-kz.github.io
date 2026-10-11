@@ -4,10 +4,33 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Baqyla — видеонаблюдение в Уральске</title>
-  <meta name="description" content="Монтаж видеонаблюдения в Уральске для дома, бизнеса и крестьянского хозяйства. Отметьте камеры на плане — стоимость посчитается сразу.">
+  <meta name="description" content="Монтаж видеонаблюдения в Уральске для дома, бизнеса и крестьянского хозяйства. Выберите объект и камеры — стоимость и схема установки посчитаются сразу.">
+  <link rel="canonical" href="https://baqyla.kz/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Baqyla">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:url" content="https://baqyla.kz/">
   <meta property="og:title" content="Baqyla — видеонаблюдение в Уральске">
-  <meta property="og:description" content="Отметьте камеры на плане — стоимость посчитается сразу.">
-  <meta property="og:image" content="assets/og.jpg">
+  <meta property="og:description" content="Выберите объект и камеры — стоимость и схема установки посчитаются сразу.">
+  <meta property="og:image" content="https://baqyla.kz/assets/og.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "Baqyla Security",
+    "alternateName": "Baqyla",
+    "description": "Монтаж видеонаблюдения в Уральске для дома, бизнеса и крестьянского хозяйства.",
+    "url": "https://baqyla.kz/",
+    "logo": "https://baqyla.kz/assets/mark.png",
+    "image": "https://baqyla.kz/assets/og.jpg",
+    "telephone": "+77089804260",
+    "priceRange": "от 15 000 ₸",
+    "currenciesAccepted": "KZT",
+    "address": { "@type": "PostalAddress", "addressLocality": "Уральск", "addressRegion": "Западно-Казахстанская область", "addressCountry": "KZ" },
+    "areaServed": { "@type": "City", "name": "Уральск" }
+  }
+  </script>
   <meta name="theme-color" content="#FFFFFF">
   <link rel="icon" href="assets/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,6 +50,10 @@
         <a href="index.html" aria-current="page">Расчёт</a>
         <a href="kits.html">Комплекты</a>
       </nav>
+      <div class="top__mid">
+        <span class="top__city"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M12 22s-7.5-6.3-7.5-12.1a7.5 7.5 0 0 1 15 0C19.5 15.7 12 22 12 22zm0-9.3a2.8 2.8 0 1 0 0-5.6 2.8 2.8 0 0 0 0 5.6z"/></svg>г.&nbsp;Уральск</span>
+        <p class="top__price">Установка 1 камеры<i aria-hidden="true">—</i><b id="topPrice">15 000 ₸</b></p>
+      </div>
       <a class="top__phone" href="tel:+77089804260">+7 708 980 42 60</a>
       <a class="btn btn--wa btn--sm top__wa" href="https://wa.me/77089804260" target="_blank" rel="noopener" aria-label="Написать в WhatsApp"><span>WhatsApp</span></a>
     </div>
@@ -38,44 +65,60 @@
     </section>
 
     <section id="calc" class="calc wide" aria-label="Расчёт стоимости">
-      <div class="wiz" id="wiz">
-        <nav class="steps-bar" id="stepsBar" aria-label="Шаги расчёта"></nav>
-        <div class="q-row">
-          <h2 class="q" id="q" tabindex="-1"></h2>
-          <p class="hint" id="hint" aria-hidden="true"><svg viewBox="0 0 24 24" fill="#fff" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10m0-.5V9a1.5 1.5 0 0 1 3 0v1.5m0 0a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1.2a5 5 0 0 1-3.9-1.9L4.6 16a1.5 1.5 0 0 1 2.3-1.9L9 16.5V11"/></svg>Нажмите на карточку</p>
+      <div class="calc__main">
+        <div class="wiz" id="wiz">
+          <nav class="steps-bar" id="stepsBar" aria-label="Шаги расчёта"></nav>
+          <div class="q-row">
+            <h2 class="q" id="q" tabindex="-1"></h2>
+            <p class="hint" id="hint" aria-hidden="true"><svg viewBox="0 0 24 24" fill="#fff" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10m0-.5V9a1.5 1.5 0 0 1 3 0v1.5m0 0a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1.2a5 5 0 0 1-3.9-1.9L4.6 16a1.5 1.5 0 0 1 2.3-1.9L9 16.5V11"/></svg>Нажмите на карточку</p>
+          </div>
+          <div id="stepBody"></div>
+          <div class="wiz__nav">
+            <button type="button" class="btn btn--ghost" id="back">Назад</button>
+            <button type="button" class="btn btn--primary" id="next">Дальше</button>
+          </div>
         </div>
-        <div id="stepBody"></div>
-        <div class="wiz__nav">
-          <button type="button" class="btn btn--ghost" id="back">Назад</button>
-          <button type="button" class="btn btn--primary" id="next">Дальше</button>
-        </div>
+        <!-- «Дополнительно» — отдельная карточка под схемой, только на шаге «Схема» -->
+        <section class="adds" id="adds" aria-labelledby="addsT" hidden></section>
       </div>
 
       <aside class="smeta" aria-live="polite">
         <div class="smeta__head">
           <div class="smeta__title">Предварительная смета</div>
-          <button type="button" class="smeta__link" id="reset" hidden>Начать заново</button>
         </div>
         <div id="lines" class="smeta__lines"></div>
         <div class="smeta__total">
-          <span>Итого под ключ</span>
-          <strong id="total">0 ₸</strong>
+          <span id="totalT">Итого под ключ</span>
+          <div><small class="smeta__from" id="from" hidden>от</small> <strong id="total">0 ₸</strong></div>
         </div>
-        <p class="smeta__note">Цена предварительная — точную сумму назовём после осмотра объекта.</p>
-        <p class="smeta__note smeta__net" id="netNote" hidden>Интернета нет — запись сохраняется, смотреть можно на месте. Чтобы смотреть с телефона издалека, нужен интернет или 4G-роутер — подскажем на осмотре.</p>
-        <a class="btn btn--wa btn--block" id="send" href="#" target="_blank" rel="noopener">Отправить расчёт в WhatsApp</a>
-        <a class="btn btn--ghost btn--block" href="tel:+77089804260">Позвонить</a>
-        <button type="button" class="smeta__share" id="share" hidden><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3.2-3.2a4.5 4.5 0 0 0-6.4-6.4L12 5.6"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3.2 3.2a4.5 4.5 0 0 0 6.4 6.4L12 18.4"/></svg>Поделиться расчётом</button>
+        <!-- нет интернета → роутер с SIM в аренду; в разовый итог не входит -->
+        <div class="smeta__monthly" id="monthly" hidden></div>
+        <p class="smeta__note" id="note" hidden>Цена примерная.</p>
+        <!-- кнопки — только на последнем шаге «Схема» -->
+        <div class="smeta__acts" id="acts" hidden>
+          <button type="button" class="btn btn--primary btn--block" id="review">Отправить на рассмотрение</button>
+          <form class="lead" id="lead" hidden novalidate>
+            <label class="lead__label" for="leadPhone">Телефон для связи — перезвоним и уточним детали</label>
+            <input class="lead__input" id="leadPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+7 7__ ___ __ __" required>
+            <button type="submit" class="btn btn--primary btn--block" id="leadSend">Отправить заявку</button>
+            <p class="lead__msg" id="leadMsg" role="status"></p>
+          </form>
+          <a class="btn btn--ghost btn--wa btn--block" id="send" href="#" target="_blank" rel="noopener">Отправить расчёт монтажнику</a>
+          <button type="button" class="btn btn--ghost btn--block btn--pdf" id="pdf"><svg class="btn__ic" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="16" fill="#EAF2FF"/><path d="M16 8.5v11m-4.6-4.4L16 19.7l4.6-4.6M10 23.5h12" fill="none" stroke="#1E6BE0" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Скачать расчёт</button>
+        </div>
       </aside>
     </section>
   </main>
 
   <div class="mbar" aria-hidden="true">
     <div><small>Итого</small><strong id="mTotal">0 ₸</strong></div>
-    <a class="btn btn--wa btn--sm" id="mSend" href="#" target="_blank" rel="noopener" tabindex="-1">В WhatsApp</a>
+    <a class="btn btn--primary btn--sm" id="mSend" href="#acts" tabindex="-1" hidden>Отправить</a>
   </div>
 
+  <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }</script>
   <script src="assets/data.js"></script>
+  <script src="assets/scenes.js"></script>
   <script src="assets/app.js"></script>
+  <script type="module" src="assets/scheme3d.js"></script>
 </body>
 </html>

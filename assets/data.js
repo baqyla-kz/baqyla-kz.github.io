@@ -1,35 +1,23 @@
 // Цены, планы и комплекты Baqyla — общие для страниц «Расчёт» и «Комплекты».
-// Цены и комплекты совпадают с CRM (~/dev/baqyla-crm/src/lib/seed.ts):
-// комплект «Дом» здесь даёт те же 209 800 ₸ оборудования + 63 000 ₸ работы.
-// Поменять цены — только в PRICE ниже.
+// Цены оборудования и материалов — у каждого объекта свои (HOME / FLATS / BIZ ниже), правятся в админке;
+// в PRICE — общее для всех объектов: установка, носители, 4G-роутер.
 
 const WA_PHONE = '77089804260';
+const INSTALLER_PHONE = '77787943760'; // «Отправить расчёт монтажнику» на шаге «Схема»
+
+// Заявки «Отправить на рассмотрение» → CRM (Supabase, функция site_lead — ~/dev/baqyla-crm/supabase/site-leads.sql).
+// Ключ publishable — публичный по назначению: сайт может только вызвать site_lead, читать CRM им нельзя.
+const CRM = { url: 'https://gzwexqyxllqkyiarrcae.supabase.co', key: 'sb_publishable_GXCmslqlrDBPmlUySnpuGg_AOS0lt7Q' };
 
 const PRICE = {
-  camOut: { name: 'Уличная камера 4 Мп ColorVu', price: 28000 },
-  camIn: { name: 'Камера-турель 4 Мп', price: 23800 },
-  nvr: [
-    { ch: 4, name: 'Регистратор 4 канала с PoE', price: 37000 },
-    { ch: 8, name: 'Регистратор 8 каналов с PoE', price: 57800 },
-    { ch: 16, name: 'Регистратор 16 каналов с PoE', price: 110000 }, // нет в CRM — уточнить
-  ],
-  hdd: [
-    { tb: 1, price: 22000 }, // нет в CRM — уточнить
-    { tb: 2, price: 30000 },
-    { tb: 4, price: 45000 },
-    { tb: 6, price: 62000 }, // нет в CRM — уточнить
-    { tb: 8, price: 78000 }, // нет в CRM — уточнить
-  ],
-  sd: { name: 'Карта памяти microSD 64 ГБ', gb: 64, price: 6000 }, // нет в CRM — ЦЕНА-ЗАГЛУШКА, уточнить
-  cable: { name: 'Кабель UTP Cat.5e', price: 250 },
-  conduit: { name: 'Гофра 20 мм', price: 150 },
-  rj45: { name: 'Коннектор RJ45', price: 100, perCam: 2 },
-  box: { name: 'Распаячная коробка', price: 1500, perCam: 1 },
-  labor: { name: 'Монтаж камер', price: 12000 },
-  setup: { name: 'Пусконаладка и настройка телефона', price: 15000 },
+  hddTb: [1, 2, 4, 6, 8], // объёмы дисков на шаге «Запись»; цены — у объекта (HOME.hdd.prices…)
+  sd: { gb: 64 }, // SD-карта в Wi-Fi камере: объём для подсчёта дней; название — у объекта
+  // наша работа за камеру — на всех шагах и для всех объектов
+  install: { name: 'Установка камер', price: 15000 },
+  // нет интернета на объекте — роутер с SIM в аренду: ежемесячно, в разовый итог не входит
+  router4g: { name: 'Мобильный 4G-роутер с интернетом', price: 8000 },
+  // ТЕХДОЛГ: коммутатор (иконка assets/icons/switch.webp) — правило, когда нужен, и цена; см. README «Техдолг»
   gbPerCamDay: 30, // 4 Мп, H.265, запас на движение
-  sdMaxCams: 3, // SD-карту (запись в саму камеру, без регистратора) предлагаем при 1–3 камерах…
-  sdMaxCamsBusiness: 2, // …а в коммерции от 3 камер — всегда регистратор
   maxPerZone: 16, // не больше 16 уличных и 16 внутренних камер; больше — считаем вручную
 };
 
@@ -73,7 +61,7 @@ const PLANS = {
   flats: {
     tab: 'Многоквартирный',
     title: 'МНОГОКВАРТИРНЫЙ ДОМ',
-    cable: 25,
+    cable: 15,
     base: { out: [0, 1, 2, 3], in: [6, 7] },
     zones: {
       out: { t: 'Снаружи дома', d: 'Входы, двор, парковка', photo: 'flats-out', pos: [50, 31.3], zoom: 1 },
@@ -154,6 +142,39 @@ const KITS = [
   { name: 'Бизнес', plan: 'business', on: [0, 1, 2, 3, 4, 5, 6, 7], store: '4x1', text: 'Улица и торговый зал: восемь камер' },
 ];
 
+// Блок «Дополнительно» под схемой: что клиент может добавить к системе.
+// pic — assets/<pic>.webp. move: [x, y, масштаб] — фото вписано в рамку 4:3 целиком и сдвинуто на x/y % рамки;
+// cover: [x, y, масштаб] — фото заполняет рамку (кадр как у фото шага 2). Кадры выставлены в drafts/addons-photos.html.
+// ba — «до | после»: рамка пополам, слева кадр «до», справа «после».
+// price: null — цены нет: в смете «по запросу», в итог не входит. per: 'cam' — на каждую камеру, 'one' — одна на объект.
+// from: true — цена «от»: в смете «от 15 000 ₸», в итог идёт сама цена, итог тоже «от …». ic — иконка строки сметы (assets/icons), иначе контурный значок.
+const ADDONS = [
+  { g: 'Звук и камеры', items: [
+    { id: 'mic', t: 'Микрофон в камере', d: 'Запись звука вместе с видео', pic: 'addons/mic', move: [0.2, -13.7, 1], wave: true, price: null, per: 'cam' },
+    { id: 'talk', t: 'Говорить через камеру', d: 'Двусторонняя связь из приложения', pic: 'addons/talk', move: [33, 3.3, 1.75], price: null, per: 'cam' },
+    { id: 'siren', t: 'Сирена и свет', d: 'Видит человека ночью — включает свет и сирену', pic: 'addons/siren', move: [0, 0, 1], price: null, per: 'cam' },
+    { id: 'ptz', t: 'Поворотная камера', d: 'Поворот и приближение с телефона', pic: 'addons/ptz', move: [-24.2, -26.2, 2], price: null, per: 'one' },
+    { id: 'zoom', t: 'Камера с зумом', d: 'Приближает дальние ворота и номера машин', price: null, per: 'one', ba: [
+      { pic: 'photos/home-out', cover: [50, 40, 1], l: 'Без зума' },
+      { pic: 'photos/home-out', cover: [72, 30, 3], l: 'Зум ×4' },
+    ] },
+    { id: 'wifi', t: 'Wi‑Fi камера', d: 'Где нельзя протянуть кабель', pic: 'addons/wifi', move: [0, 0, 1], price: null, per: 'one' },
+    { id: 'monitor', t: 'Монитор', d: 'Смотреть камеры на месте', pic: 'addons/monitor', move: [0, 0, 1], price: 15000, from: true, ic: 'monitor', per: 'one' }, // в смете «от 15 000 ₸», в итог — 15 000 ₸
+  ] },
+  { g: 'Умная аналитика', items: [
+    { id: 'human', t: 'Отличает людей и машины', d: 'Без ложных тревог от кошек и листвы', pic: 'addons/human', move: [0, 0, 1.158], price: null, per: 'cam' },
+    { id: 'line', t: 'Пересечение линии', d: 'Уведомление, если зашли за забор', pic: 'addons/line', move: [33.2, 21.1, 1.87], price: null, per: 'one' },
+    { id: 'plate', t: 'Распознавание номеров', d: 'Въезд, шлагбаум, список своих машин', pic: 'addons/plate', move: [-8.9, 23.9, 2.38], price: null, per: 'one' },
+    { id: 'face', t: 'Распознавание лиц', d: 'Свои и чужие на входе', pic: 'addons/face', move: [15, 1.8, 1.341], price: null, per: 'one' },
+    { id: 'count', t: 'Подсчёт посетителей', d: 'Сколько людей зашло за день', pic: 'addons/count', move: [0, 0, 1.478], price: null, per: 'one' },
+  ] },
+  { g: 'Охрана и датчики', items: [
+    { id: 'pir', t: 'Датчик движения', d: 'Срабатывает, когда в помещении кто-то есть', pic: 'addons/pir', move: [0, 0, 1.712], price: null, per: 'one' },
+    { id: 'door', t: 'Датчик двери или окна', d: 'Сообщит, что открыли', pic: 'addons/door', move: [-24.5, 52.4, 2.529], price: null, per: 'one' },
+  ] },
+];
+const ADDON = Object.fromEntries(ADDONS.flatMap((g) => g.items.map((a) => [a.id, a])));
+
 const fmt = (n) => Math.round(n).toLocaleString('ru-RU').replace(/ /g, ' ') + ' ₸';
 
 function plural(n, one, few, many) {
@@ -177,12 +198,10 @@ function counts(s) {
 // Клиент выбирает носитель, дни записи считаются от числа камер и показываются примерно («6–8 дней»).
 
 const DISKS = [
-  ...PRICE.hdd.map((d) => ({ key: `${d.tb}x1`, tb: d.tb, qty: 1 })),
+  ...PRICE.hddTb.map((tb) => ({ key: `${tb}x1`, tb, qty: 1 })),
   ...[2, 3, 4].map((q) => ({ key: `8x${q}`, tb: 8, qty: q })), // на 17–32 камеры одного диска мало
 ];
 const SD = { key: 'sd', sd: true };
-
-const sdAllowed = (s, n) => n >= 1 && n <= (s.plan === 'business' ? PRICE.sdMaxCamsBusiness : PRICE.sdMaxCams);
 
 // дней записи: карта — своя у каждой камеры, диск — общий на все камеры
 const storeDays = (o, n) => (o.sd ? PRICE.sd.gb : o.tb * o.qty * 1000 / n) / PRICE.gbPerCamDay;
@@ -196,58 +215,193 @@ function daysRange(d) {
   return { num: `${lo}–${hi}`, unit, text: `${lo}–${hi} ${unit}` };
 }
 
-// варианты на шаге «Запись»: SD первой (если можно), дальше три диска, начиная с того, где хватит хотя бы на 3 дня
+// варианты на шаге «Запись»: до wifiMaxCams камер — Wi-Fi камеры без регистратора, только SD;
+// больше — регистратор, три диска, начиная с того, где хватит хотя бы на 3 дня
 function storeOptions(s) {
   const n = counts(s).total;
   if (!n) return [];
+  if (n <= PATHS[s.plan].wifiMaxCams) return [SD];
   let i = DISKS.findIndex((d) => storeDays(d, n) >= 3);
   if (i < 0) i = DISKS.length - 1;
-  const sd = sdAllowed(s, n);
-  const disks = DISKS.slice(Math.min(i, DISKS.length - (sd ? 2 : 3)), i + (sd ? 2 : 3));
-  return sd ? [SD, ...disks] : disks;
+  return DISKS.slice(Math.max(0, Math.min(i, DISKS.length - 3)), i + 3);
 }
 
-// что считаем в смете: выбранный носитель, а пока не выбран (или стал недоступен) — диск примерно на 2 недели
-function storeOf(s) {
-  const opts = storeOptions(s), n = counts(s).total;
-  return opts.find((o) => o.key === s.store)
-    || opts.find((o) => !o.sd && storeDays(o, n) >= 14)
-    || opts[opts.length - 1];
-}
+// что считаем в смете: выбранный носитель; не выбран (или стал недоступен) — null, носителя в смете нет
+const storeOf = (s) => storeOptions(s).find((o) => o.key === s.store) || null;
 
 const storeLabel = (o) => (o.sd ? `Карта ${PRICE.sd.gb} ГБ в каждой камере` : o.qty > 1 ? `${o.qty} диска по ${o.tb} ТБ` : `Диск ${o.tb} ТБ`);
 
+// ---------- смета по объекту (шаги «Камеры», «Запись и интернет», «Схема», PDF, WhatsApp) ----------
+// Ниже — значения по умолчанию частного дома (HOME); многоквартирный (FLATS) и коммерция (BIZ) — их копии, правятся отдельно.
+// Их меняют в админке (admin.html): сохранённое лежит в Supabase
+// (таблица site_settings, ключ 'calc') и накладывается поверх при загрузке сайта — applySettings().
+// Нет цены (price не задан) → строка в смете без цены, в итог не входит, итог «от …».
+const HOME = {
+  plan: 'home',
+  wifiMaxCams: 3, // до 3 камер всего — Wi-Fi камеры без регистратора, запись на SD; больше — камеры + регистратор + диск
+  camWifi: { name: 'Камера' }, // до wifiMaxCams камер
+  cam: { name: 'Камера 2 Мп', price: 19000 }, // больше wifiMaxCams, стандарт — 2 Мп без динамика
+  camTalk: { name: 'Камера 2 Мп с динамиком', price: 28500 }, // больше wifiMaxCams и в «Дополнительно» выбрано «Говорить через камеру»
+  // регистратор — по числу камер: до 4 — 4 канала, до 8 — 8, до 16 — 16, больше — 32; в смете «Регистратор 8 каналов»
+  nvr: { name: 'Регистратор', prices: { 4: 49000, 8: 60000, 16: 123000, 32: 313000 } }, // по числу каналов
+  sd: { name: 'Карта памяти microSD 64 ГБ' }, // до wifiMaxCams — всегда в смете «в комплекте» (Ezviz кладёт карту в коробку с камерой)
+  hdd: { name: 'Жёсткий диск', prices: { 1: 35000, 2: 55000, 4: 80000 } }, // в смете «Жёсткий диск 2 ТБ»; prices — { '1': …, '2': … } по объёму в ТБ
+  // «Доп. материалы» — в смете одна строка (иконка коробок), состав — здесь; perCam — сколько на одну камеру
+  materials: {
+    wifi: [ // до wifiMaxCams камер — на каждую камеру
+      { name: 'Кабель-удлинитель питания', unit: 'м', perCam: 5, price: 250 },
+    ],
+    poe: [ // больше wifiMaxCams — на каждую камеру (питание идёт по кабелю от регистратора)
+      { name: 'Кабель UTP Cat.5e (PoE)', unit: 'м', perCam: 'cable', price: 190 }, // 'cable' — метров на камеру из PLANS[…].cable
+      { name: 'Коннектор RJ45', unit: 'шт', perCam: 2, price: 20 },
+    ],
+    out: [ // только уличные камеры, при любом количестве
+      { name: 'Гофра 20 мм', unit: 'м', perCam: 5, price: 75 },
+      { name: 'Гермобокс', unit: 'шт', perCam: 1 },
+    ],
+  },
+};
+
+// многоквартирный дом и коммерция — тот же путь, что частный: по умолчанию те же камеры, регистраторы, диски и материалы,
+// но Wi-Fi камеры (Ezviz, SD-карта в комплекте) — только до 2 камер, с 3 камер — регистратор
+const FLATS = { ...JSON.parse(JSON.stringify(HOME)), plan: 'flats', wifiMaxCams: 2 };
+const BIZ = { ...JSON.parse(JSON.stringify(HOME)), plan: 'business', wifiMaxCams: 2 };
+const PATHS = { home: HOME, flats: FLATS, business: BIZ }; // ключ — PLANS
+
+const hasPrice = (p) => typeof p === 'number';
+
+// состав «Доп. материалов»: [{ name, qty, unit, price? }]; P — HOME, FLATS или BIZ
+function pathMaterials(P, s, c) {
+  const m = P.materials, per = (p) => (p.perCam === 'cable' ? s.cable : p.perCam);
+  const take = (list, cams) => list.map((p) => ({ name: p.name, qty: cams * per(p), unit: p.unit, price: p.price }));
+  return [...take(c.total <= P.wifiMaxCams ? m.wifi : m.poe, c.total), ...take(m.out, c.out)].filter((p) => p.qty > 0);
+}
+
+// строки сметы объекта; без цены — price не задан (undefined), sum 0
+function pathLines(P, s, c, store) {
+  const eq = [], work = [];
+  const add = (list, name, qty, unit, price, ic) => qty > 0 && list.push({ name, qty, unit, price, sum: hasPrice(price) ? qty * price : 0, ic });
+  const wifi = c.total <= P.wifiMaxCams;
+  const cam = wifi ? P.camWifi : (s.addons || []).includes('talk') ? P.camTalk : P.cam;
+  add(eq, cam.name, c.total, 'шт', cam.price, 'camera');
+  if (wifi) eq.push({ name: P.sd.name, qty: c.total, unit: 'шт', price: 0, sum: 0, included: true, ic: 'sd' }); // в комплекте с камерой
+  if (!wifi) {
+    const ch = NVR_CH.find((n) => n >= c.total) || NVR_CH[NVR_CH.length - 1];
+    add(eq, `${P.nvr.name} ${ch} ${plural(ch, 'канал', 'канала', 'каналов')}`, Math.ceil(c.total / ch), 'шт', P.nvr.prices[ch], 'nvr');
+  }
+  if (store && !store.sd) add(eq, `${P.hdd.name} ${store.tb} ТБ`, store.qty, 'шт', P.hdd.prices[store.tb], 'hdd');
+  // «Доп. материалы» — одна строка со стрелкой: внутри состав. Сумма — по позициям с ценой; есть без цены — partial, итог «от»
+  const parts = pathMaterials(P, s, c).map((p) => ({ ...p, sum: hasPrice(p.price) ? p.qty * p.price : 0 }));
+  const sum = parts.reduce((a, p) => a + p.sum, 0);
+  const partial = !parts.every((p) => hasPrice(p.price));
+  if (parts.length) eq.push({ name: 'Доп. материалы', parts, price: sum || !partial ? sum : undefined, sum, partial, ic: 'box' }); // qty нет — одна строка
+  add(work, PRICE.install.name, c.total, 'шт', PRICE.install.price, 'tools');
+  return { eq, work };
+}
+
+// ---------- настройки из админки ----------
+// Объект настроек: { install: { name, price }, home: { …как HOME… }, flats: { …как FLATS… }, business: { …как BIZ… }, addons }.
+// Всё проверяется: чужое и кривое — пропускаем. Нет flats / business (ещё не сохраняли) — берут настройки частного дома,
+// кроме порога Wi-Fi камер (у них свой — 2).
+const SETTINGS_KEY = 'calc';
+const NVR_CH = [4, 8, 16, 32]; // каналы регистраторов
+const HDD_SIZES = [...new Set(DISKS.map((d) => d.tb))];
+
+// фото карточек «Дополнительно»: обычная — { pic, move }, «до | после» — { ba: [{ pic, cover, l }, …] }
+const addonFrame = (a) => (a.ba ? { ba: a.ba.map(({ pic, cover, l }) => ({ pic, cover, l })) } : { pic: a.pic, move: a.move });
+
+function calcSettings() { // текущие значения — для админки и сохранения
+  const path = ({ plan, ...rest }) => rest;
+  const addons = Object.fromEntries(Object.values(ADDON).map((a) => [a.id, addonFrame(a)]));
+  return JSON.parse(JSON.stringify({ install: PRICE.install, home: path(HOME), flats: path(FLATS), business: path(BIZ), addons }));
+}
+
+// картинка: своя из assets ('addons/mic' → assets/addons/mic.webp) или загруженная в админке (Supabase Storage, папка site)
+const SITE_IMG = `${CRM.url}/storage/v1/object/public/site/`;
+const picOk = (p) => typeof p === 'string' && (/^[a-z0-9_-]+(\/[a-z0-9_-]+)*$/.test(p) || (p.startsWith(SITE_IMG) && !p.includes('..') && /^[\w./-]+$/.test(p.slice(SITE_IMG.length))));
+const picUrl = (p) => (p.startsWith('https://') ? p : `assets/${p}.webp`);
+
+function applySettings(v) {
+  if (!v || typeof v !== 'object') return false;
+  const str = (x, d) => (typeof x === 'string' && x.trim() ? x.trim().slice(0, 80) : d);
+  const num = (x) => (typeof x === 'number' && isFinite(x) && x >= 0 && x <= 1e8 ? Math.round(x) : undefined);
+  const int = (x, lo, hi, d) => (Number.isInteger(x) && x >= lo && x <= hi ? x : d);
+  const item = (src, def) => { // { name, price } — цена может отсутствовать
+    const o = { name: str(src && src.name, def.name) };
+    const p = num(src && src.price);
+    if (p !== undefined) o.price = p;
+    return o;
+  };
+  if (v.addons && typeof v.addons === 'object') {
+    const n3 = (a, lo, hi, zlo, zhi) => Array.isArray(a) && a.length === 3 && a.every((x) => typeof x === 'number' && isFinite(x))
+      && a[0] >= lo && a[0] <= hi && a[1] >= lo && a[1] <= hi && a[2] >= zlo && a[2] <= zhi ? a.map((x) => Math.round(x * 1000) / 1000) : null;
+    for (const a of Object.values(ADDON)) {
+      const f = v.addons[a.id];
+      if (!f || typeof f !== 'object') continue;
+      if (a.ba && Array.isArray(f.ba)) {
+        a.ba = a.ba.map((half, i) => {
+          const h = f.ba[i] || {};
+          return { pic: picOk(h.pic) ? h.pic : half.pic, cover: n3(h.cover, 0, 100, 1, 6) || half.cover, l: str(h.l, half.l).replace(/[<>&"]/g, '').slice(0, 24) };
+        });
+      } else if (!a.ba) {
+        if (picOk(f.pic)) a.pic = f.pic;
+        a.move = n3(f.move, -100, 100, 0.2, 6) || a.move;
+      }
+    }
+  }
+  if (v.install) Object.assign(PRICE.install, { name: str(v.install.name, PRICE.install.name), price: num(v.install.price) ?? PRICE.install.price });
+  const path = (P, h) => {
+    if (!h || typeof h !== 'object') return;
+    P.wifiMaxCams = int(h.wifiMaxCams, 0, 32, P.wifiMaxCams);
+    P.camWifi = item(h.camWifi, P.camWifi);
+    P.cam = item(h.cam, P.cam);
+    P.camTalk = item(h.camTalk, P.camTalk);
+    const nvrPrices = {};
+    for (const ch of NVR_CH) { const p = num(h.nvr && h.nvr.prices && h.nvr.prices[ch]); if (p !== undefined) nvrPrices[ch] = p; }
+    P.nvr = { name: str(h.nvr && h.nvr.name, P.nvr.name), prices: nvrPrices };
+    P.sd = item(h.sd, P.sd);
+    const prices = {};
+    for (const tb of HDD_SIZES) { const p = num(h.hdd && h.hdd.prices && h.hdd.prices[tb]); if (p !== undefined) prices[tb] = p; }
+    P.hdd = { name: str(h.hdd && h.hdd.name, P.hdd.name), prices };
+    if (h.materials && typeof h.materials === 'object') {
+      for (const g of ['wifi', 'poe', 'out']) {
+        const list = h.materials[g];
+        if (!Array.isArray(list)) continue;
+        P.materials[g] = list.slice(0, 20).filter((m) => m && str(m.name)).map((m) => {
+          const o = { name: str(m.name), unit: str(m.unit, 'шт').slice(0, 10), perCam: m.perCam === 'cable' ? 'cable' : typeof m.perCam === 'number' && m.perCam >= 0 && m.perCam <= 1000 ? m.perCam : 1 };
+          const p = num(m.price);
+          if (p !== undefined) o.price = p;
+          return o;
+        });
+      }
+    }
+  };
+  path(HOME, v.home);
+  path(FLATS, v.flats || (v.home && { ...v.home, wifiMaxCams: FLATS.wifiMaxCams }));
+  path(BIZ, v.business || (v.home && { ...v.home, wifiMaxCams: BIZ.wifiMaxCams }));
+  return true;
+}
+
 function estimate(s) {
   const c = counts(s);
-  const eq = [], work = [];
-  if (!c.total) return { c, eq, work, total: 0 };
-  const add = (list, name, qty, unit, price) => qty > 0 && list.push({ name, qty, unit, price, sum: qty * price });
-
-  add(eq, PRICE.camOut.name, c.out, 'шт', PRICE.camOut.price);
-  add(eq, PRICE.camIn.name, c.inn, 'шт', PRICE.camIn.price);
-
+  if (!c.total) return { c, eq: [], work: [], extra: [], total: 0, monthly: [] };
   const store = storeOf(s);
-  if (store.sd) {
-    // запись в саму камеру: регистратор и диск не нужны
-    add(eq, PRICE.sd.name, c.total, 'шт', PRICE.sd.price);
-  } else {
-    // камер больше, чем каналов у самого большого регистратора, — ставим несколько больших
-    const top = PRICE.nvr[PRICE.nvr.length - 1];
-    const nvr = PRICE.nvr.find((r) => r.ch >= c.total);
-    if (nvr) add(eq, nvr.name, 1, 'шт', nvr.price);
-    else add(eq, top.name, Math.ceil(c.total / top.ch), 'шт', top.price);
-    add(eq, `Жёсткий диск ${store.tb} ТБ`, store.qty, 'шт', PRICE.hdd.find((d) => d.tb === store.tb).price);
-  }
+  const P = PATHS[s.plan];
+  const { eq, work } = pathLines(P, s, c, store);
 
-  const meters = c.total * s.cable;
-  add(eq, PRICE.cable.name, meters, 'м', PRICE.cable.price);
-  add(eq, PRICE.rj45.name, c.total * PRICE.rj45.perCam, 'шт', PRICE.rj45.price);
-  add(eq, PRICE.box.name, c.total * PRICE.box.perCam, 'шт', PRICE.box.price);
-  add(eq, PRICE.conduit.name, meters, 'м', PRICE.conduit.price);
+  // «Дополнительно»: без цены — строка «по запросу», в итог не входит (sum 0, price null)
+  // с регистратором: «Говорить через камеру» уже в цене камеры (камера с динамиком) — отдельной строкой не дублируем
+  const inCam = (id) => id === 'talk' && c.total > P.wifiMaxCams;
+  const extra = (s.addons || []).filter((id) => ADDON[id] && !inCam(id)).map((id) => {
+    const a = ADDON[id], qty = a.per === 'cam' ? c.total : 1;
+    return { name: a.t, qty, unit: 'шт', price: a.price, sum: a.price === null ? 0 : qty * a.price, addon: id, ic: a.ic, from: a.from };
+  });
 
-  add(work, PRICE.labor.name, c.total, 'усл', PRICE.labor.price);
-  add(work, PRICE.setup.name, 1, 'усл', PRICE.setup.price);
-
-  const total = [...eq, ...work].reduce((a, l) => a + l.sum, 0);
-  return { c, eq, work, total, store };
+  const total = [...eq, ...work, ...extra].reduce((a, l) => a + l.sum, 0);
+  const monthly = [];
+  if (s.net === 'no') monthly.push({ name: PRICE.router4g.name, qty: 1, unit: 'шт', price: PRICE.router4g.price, sum: PRICE.router4g.price, ic: 'router' });
+  // draft — в смете есть позиции без цены: итог показываем «от …»
+  const draft = eq.some((l) => l.price === undefined || l.partial) || extra.some((l) => l.from);
+  return { c, eq, work, extra, total, store, monthly, draft };
 }
+
