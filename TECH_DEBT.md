@@ -1,9 +1,7 @@
 # Технический долг
 
 ## Заявки с сайта
-- [ ] Выполнить в Supabase CRM (SQL Editor → New query → Run): `baqyla-crm/supabase/site-leads.sql`
-      и строку `revoke … records_daily_snapshot …` из `baqyla-crm/supabase/backup.sql`.
-      Пока не выполнено, «Отправить заявку» отвечает «Не получилось отправить» — функции `site_lead` в базе нет.
+- [x] SQL в Supabase CRM выполнен 10.10.2026: функция `site_lead` есть, вызов снимков базы с сайта закрыт.
 - [ ] После этого отправить одну пробную заявку с сайта и проверить, что она появилась в CRM.
 
 ## Поиск (Google, Яндекс)
