@@ -91,3 +91,10 @@ python3 -m http.server 5191
 ```
 
 Через `file://` схема и PDF не заработают — модули и шрифты требуют http.
+
+## Публикация
+
+Сайт — GitHub Pages из ветки `main`: https://ppechkin574-art.github.io/baqyla/ (публикуется сам после `git push`).
+Черновики (`drafts/`, `*-variants.html`, `icon-animations.html`) в git не попадают — только локально.
+Для поиска: `robots.txt`, `sitemap.xml`, canonical/og-теги и описание организации (JSON-LD) в `<head>` `index.html`;
+при смене адреса сайта — поменять адрес во всех них.
