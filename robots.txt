@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://ppechkin574-art.github.io/baqyla/sitemap.xml
+Sitemap: https://baqyla-kz.github.io/sitemap.xml
