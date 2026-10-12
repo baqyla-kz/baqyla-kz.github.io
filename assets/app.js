@@ -33,7 +33,7 @@ const STEPS = [
   {
     name: 'Объект',
     q: 'Какой у вас объект?',
-    options: () => OBJECTS.map((o) => ({ v: o.plan, on: state.plan === o.plan, html: `${icon(o.icon)}<b>${t(o.t)}</b><small>${t(o.d)}</small>` })),
+    options: () => OBJECTS.map((o) => ({ v: o.plan, on: state.plan === o.plan, html: `${icon(o.icon)}<b>${t(o.t)}</b><small>${tl(o.d)}</small>` })),
     pick: (v) => {
       if (state.plan !== v) {
         state.plan = v;
@@ -60,9 +60,9 @@ const STEPS = [
         const pics = o.sd ? 1 : o.tb >= 2 || o.qty > 1 ? 2 : 1; // от 2 ТБ — две иконки диска
         return {
           v: o.key, on: cur === o.key,
-          html: `<span class="o__big o__big--store" aria-hidden="true"><span class="o__media o__media--${o.sd ? 'sd' : 'hdd'}">${`<img src="assets/icons/${o.sd ? 'sd' : 'hdd'}.webp" alt="">`.repeat(pics)}</span><span class="o__days">${L('хранить', 'сақтайды')}<b>${r.num}</b>${r.unit}</span></span>`
-            + (o.sd ? `<b>${L(`Карта памяти ${PRICE.sd.gb} ГБ`, `${PRICE.sd.gb} ГБ жад картасы`)}</b><small>${L('В каждой камере, без регистратора', 'Әр камераның ішінде, регистраторсыз')}</small>`
-              : `<b>${diskLabel(o)}</b><small>${L(`В регистраторе, на ${n} ${plural(n, 'камеру', 'камеры', 'камер')}`, `Регистраторда, ${n} камераға`)}</small>`),
+          html: `<span class="o__big o__big--store" aria-hidden="true"><span class="o__media o__media--${o.sd ? 'sd' : 'hdd'}">${`<img src="assets/icons/${o.sd ? 'sd' : 'hdd'}.webp" alt="">`.repeat(pics)}</span><span class="o__days"><span class="o__keep">${L('хранить', 'сақтайды')}</span><b>${r.num}</b><span class="o__unit">${r.unit}</span></span></span>`
+            + (o.sd ? `<b>${L(`Карта памяти ${PRICE.sd.gb} ГБ`, `${PRICE.sd.gb} ГБ жад картасы`)}</b><small>${both(L('В каждой камере, без регистратора', 'Әр камераның ішінде, регистраторсыз'), L('В камере, без регистратора', 'Камерада, регистраторсыз'))}</small>`
+              : `<b>${diskLabel(o)}</b><small>${both(L(`В регистраторе, на ${n} ${plural(n, 'камеру', 'камеры', 'камер')}`, `Регистраторда, ${n} камераға`), L('В регистраторе', 'Регистраторда'))}</small>`),
         };
       });
     },
@@ -75,7 +75,7 @@ const STEPS = [
       options: () => [
         ['yes', 'wifi', state.plan === 'business' ? 'На объекте есть интернет' : 'В доме есть интернет', 'Камеры можно смотреть с телефона откуда угодно'],
         ['no', 'wifi-off', 'Нет интернета', 'Запись сохраняется, смотреть — на месте'],
-      ].map(([v, ic, tt, d]) => ({ v, on: state.net === v, html: `${netIcon(ic)}<b>${t(tt)}</b><small>${t(d)}</small>` })),
+      ].map(([v, ic, tt, d]) => ({ v, on: state.net === v, html: `${netIcon(ic)}<b>${tl(tt)}</b><small>${tl(d)}</small>` })),
       isSet: () => state.net !== null,
       pick: (v) => (state.net = v),
     },
@@ -127,19 +127,29 @@ function renderStep(animate) {
   $('#hint').hidden = !hint;
 
   const last = state.step === STEPS.length - 1;
+  $('.calc').classList.toggle('is-last', last); // телефон: на «Схеме» смета — первой (styles.css)
+  placeStepsBar();
   $('#adds').hidden = !last;
   if (last) $('#adds').innerHTML = renderAddons();
   $('#back').hidden = state.step === 0;
   const next = $('#next');
   next.hidden = last;
   next.disabled = !last && !(s.ready ? s.ready() : state.picked[state.step]);
+  // телефон, шаг «Схема»: кнопка «Скрыть / Показать» схему
+  $('#schTg').hidden = !last;
+  syncSchTg();
+  // нижняя панель телефона повторяет кнопки шага
+  $('#mBack').hidden = state.step === 0;
+  $('#mNext').hidden = last;
+  $('#mNext').disabled = next.disabled;
+  syncBar();
 
   if (animate) {
     body.classList.remove('is-in');
     void body.offsetWidth;
     body.classList.add('is-in');
-    const top = $('#wiz').getBoundingClientRect().top;
-    if (top < 0) $('#wiz').scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+    const first = last && phone.matches ? $('.calc') : $('#wiz'); // на «Схеме» у телефона сверху смета
+    if (first.getBoundingClientRect().top < 0) first.scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth' });
   }
 }
 
@@ -160,7 +170,7 @@ function wobble(k, el) {
   const c = Scheme3D.stage(k).controls, t0 = performance.now(), dur = 3200;
   const tip = document.createElement('div');
   tip.className = 'sch__hint';
-  tip.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg>${touch.matches ? L('Схему можно вращать пальцем и приближать двумя', 'Схеманы саусақпен айналдырып, екі саусақпен жақындатуға болады') : L('Схему можно вращать мышью и приближать', 'Схеманы тышқанмен айналдырып, жақындатуға болады')}`;
+  tip.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg>${touch.matches ? both(L('Схему можно вращать пальцем и приближать двумя', 'Схеманы саусақпен айналдырып, екі саусақпен жақындатуға болады'), L('Крутите и приближайте пальцами', 'Саусақпен айналдырып, жақындатыңыз')) : L('Схему можно вращать мышью и приближать', 'Схеманы тышқанмен айналдырып, жақындатуға болады')}`;
   el.append(tip);
   requestAnimationFrame(() => tip.classList.add('is-on'));
   const done = () => { c.autoRotate = false; tip.classList.remove('is-on'); setTimeout(() => tip.remove(), 400); };
@@ -189,8 +199,32 @@ function resetAfter(step) {
   if (step < 3) state.addons = []; // «Схема»: «Дополнительно»
 }
 
+// телефон, шаг «Схема»: смета стоит первой — шаги 1–4 переезжают наверх сметы, чтобы ходить по шагам, не листая
+function placeStepsBar() {
+  const bar = $('#stepsBar'), inSmeta = state.step === STEPS.length - 1 && phone.matches;
+  const host = inSmeta ? $('.smeta') : $('#wiz');
+  if (bar.parentElement !== host) host.prepend(bar);
+}
+
+// схема скрыта кнопкой «Скрыть» (телефон) — при каждом входе на шаг «Схема» снова показана
+let schOff = false;
+function syncSchTg() {
+  const b = $('#schTg');
+  $('#wiz').classList.toggle('is-sch-off', schOff);
+  b.setAttribute('aria-expanded', !schOff);
+  b.setAttribute('aria-label', t(schOff ? 'Показать схему' : 'Скрыть схему'));
+  b.querySelector('span').textContent = t(schOff ? 'Показать' : 'Скрыть');
+}
+$('#schTg').addEventListener('click', () => {
+  schOff = !schOff;
+  syncSchTg();
+  // смета встаёт под заголовок; если шаг уже прокручен вверх за край — вернуть заголовок на экран
+  if (schOff && $('#wiz').getBoundingClientRect().top < 0) $('#wiz').scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+});
+
 function go(step) {
   step = Math.max(0, Math.min(STEPS.length - 1, step));
+  if (step !== state.step) schOff = false;
   if (step < state.step) resetAfter(step);
   state.step = step;
   renderStep(true);
@@ -281,7 +315,7 @@ function renderZones() {
       <div class="cnt__main">
         <span class="cnt__cam" aria-hidden="true">${CAM_IMG}</span>
         <b class="cnt__t" id="zone-${zone}">${t(z.t)}</b>
-        <span class="cnt__d">${t(z.d)}</span>
+        <span class="cnt__d">${tl(z.d)}</span>
       </div>
       <div class="cnt__row" aria-hidden="true">${CAM_IMG.repeat(k)}</div>
       <div class="cnt__ctl" role="group" aria-labelledby="zone-${zone}">
@@ -299,14 +333,17 @@ function renderZones() {
 // 3D рисует assets/scheme3d.js (модуль, Three.js с CDN) — он может загрузиться позже шага.
 
 const view = '3d'; // на сайте только 3D (2D — в PDF)
+const ZOOM_PHONE = { many: 1.4, one: 1.65 };
 
 function renderScheme() {
   const sc = SCENES[state.plan], c = counts(state);
   const many = [c.out, c.inn, c.lift].filter(Boolean).length > 1;
+  // стартовое приближение («↺» возвращает к нему); на телефоне схема узкая — ближе
+  const zoom = phone.matches ? (many ? ZOOM_PHONE.many : ZOOM_PHONE.one) : many ? 1.1 : 1.4;
   const pane = (k, n) => `
     <section class="sch__pane">
       <div class="sch__head">${t(sc[k].title)}<span class="sch__chip">${camsWord(n)}</span></div>
-      <div class="sch__stage" id="sch-${k}" data-fit="${many ? 0.92 : 0.94}" data-zoom="${many ? 1.1 : 1.4}"><p class="sch__wait">${t('Загружаем схему…')}</p></div>
+      <div class="sch__stage" id="sch-${k}" data-fit="${many ? 0.92 : 0.94}" data-zoom="${zoom}"><p class="sch__wait">${t('Загружаем схему…')}</p></div>
     </section>`;
   // зона без камер не рисуется: одна схема — на всю ширину; две-три — рядом, крупнее и ближе (data-fit → поля вокруг сцены в scheme3d.js)
   const panes = [['out', c.out], ['in', c.inn], ['lift', c.lift]].filter(([, n]) => n > 0).map(([k, n]) => pane(k, n));
@@ -371,7 +408,7 @@ function renderAddons() {
         <span class="ad__badge">${addIcon(a.id)}</span>
       </span>
       <b class="ad__t">${t(a.t)}</b>
-      <small class="ad__d">${t(a.d)}</small>
+      <small class="ad__d">${tl(a.d)}</small>
       <span class="ad__tg" aria-hidden="true"></span>
     </button>`;
   return `<h2 class="adds__t" id="addsT">${t('Дополнительно')}</h2>
@@ -469,13 +506,14 @@ function renderSmeta() {
   animateTotal(!n ? 0 : per ? inst.price : e.total);
 
   $('#monthly').hidden = early || !(n && e.monthly.length);
-  $('#monthly').innerHTML = `<div class="smeta__sub">${t('Ежемесячно')}</div>${e.monthly.map((l) => lineHtml(l, t('в месяц'))).join('')}<p class="smeta__mnote">${t('Без покупки — только абонплата, в итог не входит')}</p>`;
+  $('#monthly').innerHTML = `<div class="smeta__sub">${t('Ежемесячно')}</div>${e.monthly.map((l) => lineHtml(l, t('в месяц'))).join('')}<p class="smeta__mnote">${tl('Без покупки — только абонплата, в итог не входит')}</p>`;
 
   // кнопки — только на шаге «Схема»
   $('#acts').hidden = !(last && e.c.total);
   $('#mSend').hidden = !(last && e.c.total);
   $('#send').href = waLink(e, INSTALLER_PHONE);
   smetaOpen = n > 0;
+  syncBar();
   save(); // смета перерисовывается после любого изменения — тут же и сохраняем
 }
 
@@ -687,14 +725,35 @@ function toast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('is-on'), 3200);
 }
 
-// мобильная панель с итогом — пока смета не на экране
+// мобильная панель с итогом — пока смета не на экране. На телефоне в ней кнопки шага: на шагах 1–3 — всегда,
+// на «Схеме» — пока смета с кнопками «Отправить» не на экране (и не мешает полю телефона с клавиатурой)
 const mbar = $('.mbar');
+const phone = matchMedia('(max-width: 720px)');
+let typing = false; // телефон: пишут номер в заявке — панель не мешает клавиатуре
 function syncBar() {
-  const r = $('.smeta').getBoundingClientRect();
-  mbar.classList.toggle('is-on', smetaOpen && window.scrollY > 200 && (r.top > innerHeight || r.bottom < 0));
+  const r = $('.smeta').getBoundingClientRect(), off = r.top > innerHeight || r.bottom < 0;
+  if (!phone.matches) { mbar.classList.toggle('is-on', smetaOpen && window.scrollY > 200 && off); return; }
+  mbar.classList.toggle('is-on', !typing);
+  const a = $('#acts').getBoundingClientRect(), actsOn = !$('#acts').hidden && a.top < innerHeight && a.bottom > 0;
+  $('#mSend').hidden = !(state.step === STEPS.length - 1 && smetaOpen && !actsOn);
 }
+$('#lead').addEventListener('focusin', () => { typing = true; syncBar(); });
+$('#lead').addEventListener('focusout', () => { typing = false; syncBar(); });
 addEventListener('scroll', syncBar, { passive: true });
 addEventListener('resize', syncBar);
+phone.addEventListener('change', () => { placeStepsBar(); syncBar(); });
+$('#mNext').addEventListener('click', () => $('#next').click());
+$('#mBack').addEventListener('click', () => go(state.step - 1));
+
+// телефон: шапка уезжает при прокрутке вниз и возвращается при прокрутке вверх
+const header = $('.top'); // не top: window.top занят
+let lastY = scrollY;
+addEventListener('scroll', () => {
+  const y = scrollY;
+  if (Math.abs(y - lastY) < 6) return;
+  header.classList.toggle('is-away', phone.matches && y > lastY && y > header.offsetHeight);
+  lastY = y;
+}, { passive: true });
 
 // цены из админки (data.js); свежие пришли — перерисовать шаг и смету
 loadSettings(() => {

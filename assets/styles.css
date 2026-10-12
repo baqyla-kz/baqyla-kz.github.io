@@ -70,6 +70,7 @@ button { font: inherit; color: inherit; }
 .lang__btn { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px 0 6px; border: 0; border-radius: 999px; background: var(--panel-2); color: var(--text); font: 500 14px var(--f-body); cursor: pointer; transition: background .15s; }
 .lang__btn:hover { background: var(--line-soft); }
 .lang__flag { flex: none; width: 28px; height: 28px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 1px rgba(14,18,24,.1); }
+.lang__short { display: none; } /* «Рус» / «Қаз» — только на телефоне, вместо полного названия */
 .lang__chev { width: 14px; height: 14px; fill: none; stroke: var(--faint); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s; }
 .lang.is-open .lang__chev { transform: rotate(180deg); }
 .lang__menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; display: none; min-width: 180px; padding: 6px; background: #fff; border: 1px solid var(--line-soft); border-radius: 14px; box-shadow: 0 12px 32px -12px rgba(14,18,24,.25); }
@@ -95,6 +96,10 @@ button { font: inherit; color: inherit; }
   /* на телефоне иконка над подписью — как нижнее меню приложений */
   .nav a { flex: 1; flex-direction: column; gap: 3px; padding: 7px 2px 6px; font-size: 12px; }
   .nav svg { width: 20px; height: 20px; }
+  /* на телефоне: слово BAQYLA рядом со знаком, язык — флаг и «Рус» / «Қаз» */
+  .top .brand__word { display: inline; }
+  .lang__btn { width: auto; padding: 0 12px 0 6px; }
+  .lang__short { display: inline; }
 }
 @media (max-width: 520px) {
   .top__city { display: none; }
@@ -195,7 +200,7 @@ h1 {
   .steps-bar__arrow svg { height: 10px; }
 }
 @container wiz (max-width: 470px) {
-  .steps-bar button:not(.is-now) { padding-right: 3px; }
+  .steps-bar button:not(.is-now) { justify-content: center; aspect-ratio: 1; padding: 0; } /* без названия — ровный круг, а не овал */
   .steps-bar button:not(.is-now) .steps-bar__name { display: none; }
 }
 @media (max-width: 380px) {
@@ -222,6 +227,12 @@ h1 {
 .hint.is-on { visibility: visible; opacity: 1; animation: hintFloat 1.4s ease-in-out infinite; }
 /* плавает целиком, как раньше: покачивается вниз-вбок — к карточкам */
 @keyframes hintFloat { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-6px, 7px); } }
+/* на телефоне подсказка стоит строкой под вопросом: выбрали карточку — строка схлопывается, без пустого места */
+@media (max-width: 720px) {
+  .hint { max-height: 0; padding-top: 0; padding-bottom: 0; overflow: hidden; transition: opacity .2s, max-height .25s, padding .25s; }
+  .hint.is-on { max-height: 48px; padding-top: 7px; padding-bottom: 7px; }
+  .q-row:has(.hint:not(.is-on)) { row-gap: 0; }
+}
 .hint svg { width: 24px; height: 24px; color: #fff; fill: none; stroke-width: 1.8; transform: rotate(180deg); }
 .wiz__nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 22px; }
 .wiz__nav .btn { min-width: 160px; }
@@ -342,14 +353,14 @@ h1 {
   .choices--more .o__img { width: 83px; height: 83px; }
   .o__ic { --float: -4px; }
   .o:hover .o__pic { transform: translateY(-4px) scale(1.05); }
-  .o__days { justify-items: center; font-size: 11px; }
+  .o__days { justify-items: center; font-size: 12px; }
   .o__big--store .o__days b { font-size: 19px; }
   .o > b { grid-column: 2; font-size: clamp(17px, 6.6cqi, 19px); hyphens: auto; }
   .o > small { font-size: clamp(15px, 6.2cqi, 17px); }
   .o > small, .o__meta { grid-column: 2; }
   .o__meta { margin-top: 6px; }
   .o__check { top: 50%; margin-top: -15px; }
-  .o__ribbon { top: 8px; padding: 3px 8px 3px 6px; font-size: 11px; }
+  .o__ribbon { display: none; } /* в горизонтальной карточке налезает на картинку; выбор и так видно: рамка и галочка */
 }
 
 /* шаг «Сколько камер и где?»: слева камера и подпись, справа фото места, срезанное по диагонали,
@@ -694,6 +705,7 @@ h1 {
 .mbar small { display: block; font-size: 12px; color: var(--muted); }
 .mbar strong { font: 700 20px var(--f-display); font-variant-numeric: tabular-nums; }
 @media (min-width: 1000px) { .mbar { display: none; } }
+.mbar__back, .mbar__next { display: none; } /* только на телефоне */
 
 .toast {
   position: fixed; left: 50%; bottom: 84px; z-index: 40;
@@ -717,3 +729,120 @@ main:has(+ .contacts) { min-height: calc(100vh - 65px); min-height: calc(100svh 
 .contacts__ic::before { content: ''; width: 18px; height: 18px; background: var(--muted); }
 .contacts__ic--ph::before { -webkit-mask: var(--mask-phone) center / contain no-repeat; mask: var(--mask-phone) center / contain no-repeat; }
 .contacts__ic--wa::before { -webkit-mask: var(--mask-wa) center / contain no-repeat; mask: var(--mask-wa) center / contain no-repeat; }
+
+.sch-tg { display: none; } /* «Скрыть / Показать» схему — только на телефоне */
+
+/* короткие фразы для телефона (i18n.js: SHORT, tl, both) */
+.txt-sh { display: none; }
+
+/* ---------- телефон (до 720 px): короче страница, главная кнопка всегда под пальцем ---------- */
+@media (max-width: 720px) {
+  .txt-lg { display: none; }
+  .txt-sh { display: inline; }
+  /* шапка уезжает при прокрутке вниз (app.js) */
+  .top { transition: transform .25s ease; }
+  .top.is-away { transform: translateY(-100%); }
+  /* заголовок «Расчёт стоимости» повторяет вкладку «Расчёт» — на экране не показываем, для поиска и чтения с экрана оставляем */
+  .hero--calc { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .hero--calc + .calc { padding-top: 16px; }
+
+  /* «Назад / Дальше» — в нижней панели; на шаге «Схема» смета и «Отправить» сразу под схемой, «Дополнительно» — последним */
+  .wiz__nav { display: none; }
+  .calc__main { display: contents; }
+  .adds { order: 2; }
+  .calc.is-last .smeta { order: -1; } /* шаг «Схема»: смета, схема, «Дополнительно» */
+  /* шаги 1–4 наверху сметы (app.js: placeStepsBar); смета — тот же контейнер wiz, чтобы шаги сжимались так же */
+  .smeta { container: wiz / inline-size; }
+  .smeta > .steps-bar { margin-bottom: 20px; }
+  body:has(.mbar) { padding-bottom: 76px; }
+  .mbar { gap: 10px; }
+  .mbar [hidden] { display: none; }
+  .mbar__sum { flex: 1; min-width: 0; }
+  .mbar__back { display: grid; place-items: center; flex: none; width: 44px; height: 44px; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: #fff; color: var(--text); cursor: pointer; }
+  .mbar__back svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .mbar .btn { height: 48px; padding: 0 26px; font-size: 16px; }
+  .mbar__next { display: inline-flex; }
+  .mbar__next:disabled { opacity: .4; cursor: default; }
+  .mbar strong { white-space: nowrap; } /* «248 810 ₸» — одной строкой */
+
+  /* «Дополнительно» строками: фото, название, подпись, переключатель */
+  .adds__grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .adds__g { margin: 18px 0 2px; }
+  .ad { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 12px; align-items: center; padding: 10px 0; background: none; border: 0; border-top: 1px solid var(--line-soft); border-radius: 0; }
+  .ad:hover, .ad:active { transform: none; margin-top: 0; }
+  .ad[aria-pressed="true"] { background: none; }
+  .ad__pic { grid-row: 1 / span 2; width: 64px; }
+  .ad__frame { border-radius: 10px; }
+  .ad__badge, .ad__wave, .ad__lbl { display: none; }
+  .ad__t { grid-column: 2; grid-row: 1; align-self: end; margin: 0; padding: 0; font-size: 15px; }
+  .ad__d { grid-column: 2; grid-row: 2; align-self: start; margin: 2px 0 0; padding: 0; font-size: 13px; }
+  .ad__tg { grid-column: 3; grid-row: 1 / span 2; align-self: center; margin: 0; }
+
+  /* шаг «Камеры», ЖК: три карточки строками — фото слева, справа название, подпись и «− 0 +»; все три на одном экране.
+     [data-zone] — чтобы перебить высоту карточек ЖК из правил выше */
+  .cnt--three .cnt__card[data-zone] { display: grid; grid-template-columns: 104px minmax(0, 1fr); grid-template-rows: auto 1fr auto; column-gap: 12px; min-height: 0; padding: 10px; }
+  .cnt--three .cnt__photo { position: relative; grid-row: 1 / -1; width: 104px; height: 124px; border-radius: 12px; clip-path: none; }
+  .cnt--three .cnt__cam, .cnt--three .cnt__row { display: none; }
+  .cnt--three .cnt__main { grid-column: 2; max-width: none; gap: 2px; padding-top: 2px; }
+  .cnt--three .cnt__t { font-size: 18px; }
+  .cnt--three .cnt__d { font-size: 13.5px; line-height: 1.3; }
+  .cnt--three .cnt__ctl { position: static; grid-column: 2; grid-row: 3; justify-self: end; gap: 4px; padding: 4px; border-radius: 16px; box-shadow: 0 2px 10px rgba(14, 18, 24, .14); }
+  .cnt--three .cnt__ctl button { width: 40px; height: 40px; border-bottom-width: 4px; border-radius: 12px; font-size: 22px; }
+  .cnt--three .cnt__n { min-width: 40px; font-size: 24px; }
+  .cnt--three .cnt__n small { font-size: 11px; }
+
+  /* шаг «Запись и интернет»: диски — плитки в ряд, интернет — две плитки; весь шаг — на одном экране */
+  .q.q--sub { margin: 22px 0 12px; }
+  .choices:has(.o__big--store), .choices--more { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; }
+  .choices:has(.o__big--store) .o, .choices--more .o { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 12px 6px 10px; border-bottom-width: 4px; border-radius: 14px; text-align: center; }
+  /* кружок выбора — в углу плитки, как у всех карточек: пустой — можно выбрать, с галочкой — выбрано */
+  .choices:has(.o__big--store) .o__check, .choices--more .o__check { top: 7px; right: 7px; width: 22px; height: 22px; margin: 0; border-width: 2px; background-size: 13px; }
+  .o__big--store, .o__big--store .o__days { display: contents; }
+  .o__big--store .o__media { order: 1; margin-bottom: 4px; }
+  .o__big--store .o__media img { width: 44px; }
+  .o__big--store .o__media img + img, .o__keep { display: none; }
+  .choices:has(.o__big--store) .o > b { order: 2; font-size: 15px; line-height: 1.2; }
+  .o__big--store .o__days b { order: 3; margin-top: 2px; font-size: 20px; line-height: 1.1; }
+  .o__unit { order: 4; color: var(--muted); font: 500 12.5px var(--f-body); }
+  .choices:has(.o__big--store) .o > small { display: none; }
+  .choices:has(.o__big--store) .o:only-child > small { display: block; order: 5; margin-top: 4px; font-size: 13px; } /* одна карта памяти — подпись помещается */
+  .choices--more .o__img { width: 44px; height: 44px; margin: 0 0 6px; }
+  .choices--more .o > b { font-size: 15px; line-height: 1.2; }
+  .choices--more .o > small { margin-top: 2px; font-size: 12.5px; line-height: 1.25; }
+
+  /* шаг «Схема»: капсула «Скрыть ⌃ / Показать ⌄» справа от заголовка; скрыли — смета сразу под заголовком */
+  .q-row:has(.sch-tg:not([hidden])) { flex-wrap: nowrap; align-items: flex-start; gap: 12px; }
+  .q-row:has(.sch-tg:not([hidden])) .q { flex: 1; min-width: 0; }
+  .sch-tg:not([hidden]) { display: inline-flex; flex: none; align-items: center; gap: 4px; height: 38px; margin-top: 1px; padding: 0 10px 0 14px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--text); font: 600 14px var(--f-body); cursor: pointer; }
+  .sch-tg svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s; }
+  .is-sch-off .sch-tg svg { transform: rotate(180deg); }
+  .is-sch-off #stepBody { display: none; }
+  .is-sch-off .q-row { margin-bottom: 0; }
+  /* схема без рамки — на всю ширину карточки */
+  .sch__grid { background: none; border: 0; border-radius: 0; box-shadow: none; }
+  .sch__hint { width: max-content; max-width: calc(100% - 16px); white-space: normal; text-align: center; } /* длинная казахская подсказка — в две строки, не шире схемы */
+  .sch__pane { padding: 6px 0 10px; }
+  .sch__div { margin: 0; }
+
+  /* мелочи: подписи сметы крупнее, кнопки схемы под палец, «Комплекты» — без размытых карточек */
+  .ln__pq { font-size: 12px; }
+  .sch__zoom button { width: 44px; height: 44px; }
+  .soon { min-height: 280px; }
+  .soon .kits { display: none; }
+}
+
+/* невысокий телефон (до 780 px по высоте): карточки ЖК и отступ под шагами ещё меньше — три карточки всё равно на одном экране */
+@media (max-width: 720px) and (max-height: 780px) {
+  .steps-bar { margin-bottom: 20px; }
+  .cnt--three .cnt__card[data-zone] { grid-template-columns: 84px minmax(0, 1fr); padding: 8px; }
+  .cnt--three .cnt__photo { width: 84px; height: 100px; }
+  .cnt--three .cnt__t { font-size: 16px; }
+  .cnt--three .cnt__d { font-size: 13px; }
+  .cnt--three .cnt__ctl button { width: 38px; height: 38px; }
+}
+
+/* самый узкий телефон (320 px): итог и кнопка в нижней панели помещаются рядом */
+@media (max-width: 350px) {
+  .mbar strong { font-size: 18px; }
+  .mbar .btn { padding: 0 16px; }
+}
