@@ -502,7 +502,7 @@ const cardOf = (el) => cards.find((c) => c.id === el.closest('[data-cid]').datas
 const sameType = (c) => cards.filter((x) => x.type === c.type);
 
 function cardEditor(c) {
-  const list = sameType(c), i = list.indexOf(c), photo = c.pic.startsWith('https://');
+  const list = sameType(c), i = list.indexOf(c), photo = !c.pic.startsWith('icons/');
   const opt = (v, label, cur) => `<option value="${v}"${v === cur ? ' selected' : ''}>${label}</option>`;
   return `<div class="ce${c.hidden ? ' is-hidden' : ''}" data-cid="${c.id}">
     <div class="ce__pic">
@@ -517,6 +517,7 @@ function cardEditor(c) {
         <label class="f"><span>Подпись — одна строка о главном</span><input class="in" data-c="spec" maxlength="120" value="${esc(c.spec)}"></label>
         <label class="f"><span>Подпись по-казахски</span><input class="in" data-c="specKk" maxlength="120" value="${esc(c.specKk)}"></label>
       </div>
+      <label class="f"><span>Ссылка на товар (Kaspi)</span><input class="in" type="url" data-c="url" maxlength="400" value="${esc(c.url || '')}" placeholder="https://kaspi.kz/shop/p/… — пусто: карточка без ссылки"></label>
       <div class="ce__row ce__row--3">
         <label class="f"><span>Цена</span><span class="money"><input class="in in--num" type="number" min="0" step="1" inputmode="numeric" placeholder="по запросу" data-c="price" value="${hasPrice(c.price) ? c.price : ''}"></span></label>
         <label class="f"><span>После цены</span><select class="in" data-c="per">${opt('', '—', c.per)}${Object.entries(EQ_PER).map(([v, l]) => opt(v, l, c.per)).join('')}</select></label>

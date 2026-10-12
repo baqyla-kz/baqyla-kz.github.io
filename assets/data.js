@@ -341,7 +341,7 @@ function calcSettings() { // текущие значения — для адми
   return JSON.parse(JSON.stringify({ install: PRICE.install, home: path(HOME), flats: path(FLATS), business: path(BIZ), addons }));
 }
 
-// картинка: своя из assets ('addons/mic' → assets/addons/mic.webp) или загруженная в админке (Supabase Storage, папка site)
+// картинка: своя из assets ('addons/mic' → assets/addons/mic.webp; фото товаров — 'products/…') или загруженная в админке (Supabase Storage, папка site)
 const SITE_IMG = `${CRM.url}/storage/v1/object/public/site/`;
 const picOk = (p) => typeof p === 'string' && (/^[a-z0-9_-]+(\/[a-z0-9_-]+)*$/.test(p) || (p.startsWith(SITE_IMG) && !p.includes('..') && /^[\w./-]+$/.test(p.slice(SITE_IMG.length))));
 const picUrl = (p) => (p.startsWith('https://') ? p : `assets/${p}.webp`);
@@ -422,7 +422,8 @@ function applySettings(v) {
 
 // ---------- каталог «Оборудование» ----------
 // Карточки правятся в админке (вкладка «Оборудование») → site_settings, ключ CATALOG_KEY: { cards: [карточка, …] }.
-// Карточка: { id, type (раздел из EQ_TYPES), name, nameKk, spec, specKk, price?, from, per, pic, hidden }.
+// Карточка: { id, type (раздел из EQ_TYPES), name, nameKk, spec, specKk, price?, from, per, pic, url, hidden }.
+// url — ссылка на товар (Kaspi): есть — плитка открывает её в новой вкладке.
 // Текст по-казахски — своё поле; пустое — перевод по словарю KK, нет и там — по-русски. Нет цены — «по запросу».
 // Каталог ещё не сохраняли — карточки собираются из цен расчёта частного дома (catalogDefaults).
 const CATALOG_KEY = 'catalog';
@@ -435,6 +436,7 @@ const EQ_TYPES = [
 ];
 const EQ_PER = { month: 'в месяц', m: 'за метр' }; // после цены; на сайте — «в месяц» и «/ м»
 let CATALOG = null; // null — из админки ещё не сохраняли
+const urlOk = (u) => typeof u === 'string' && u.length <= 400 && /^https:\/\/[^\s<>"']+$/.test(u);
 
 function applyCatalog(v) {
   if (!v || !Array.isArray(v.cards)) return false;
@@ -449,6 +451,7 @@ function applyCatalog(v) {
       spec: cleanStr(c.spec, '', 120), specKk: cleanStr(c.specKk, '', 120),
       from: c.from === true, per: Object.prototype.hasOwnProperty.call(EQ_PER, c.per) ? c.per : '',
       pic: picOk(c.pic) ? c.pic : `icons/${EQ_TYPES.find((ty) => ty.id === c.type).ic}`,
+      url: urlOk(c.url) ? c.url : '',
       hidden: c.hidden === true,
     };
     const p = cleanNum(c.price);
@@ -463,7 +466,8 @@ function catalogDefaults() {
   const build = () => {
     const P = HOME, out = [];
     const add = (type, id, o) => hasPrice(o.price) && out.push({ id, type, ...o });
-    add('cam', 'cam-wifi', { name: t(P.camWifi.name), spec: L('Wi‑Fi, запись на карту в камере', 'Wi‑Fi, камерадағы картаға жазады'), price: P.camWifi.price, pic: 'icons/camera' });
+    add('cam', 'cam-wifi', { name: t(P.camWifi.name), spec: L('Wi‑Fi, запись на карту в камере', 'Wi‑Fi, камерадағы картаға жазады'), price: P.camWifi.price, pic: 'products/ezviz-h3c',
+      url: 'https://kaspi.kz/shop/p/ezviz-kamera-videonabljudenija-h3c-2k-3mp-rasshirenie-2304x1296-173026430/?c=750000000' });
     add('cam', 'cam', { name: t(P.cam.name), spec: L('По кабелю, запись на регистратор', 'Кабельмен, регистраторға жазады'), price: P.cam.price, pic: 'icons/camera' });
     add('cam', 'cam-talk', { name: t(P.camTalk.name), spec: L('Можно говорить через камеру', 'Камера арқылы сөйлесуге болады'), price: P.camTalk.price, pic: 'icons/camera' });
     // ПРИМЕР из вайрфрейма: цены придуманные — поправить или удалить в админке
@@ -495,7 +499,7 @@ function catalogDefaults() {
     return out;
   };
   const ru = inLang('ru', build), kk = inLang('kk', build);
-  return ru.map((c, i) => ({ from: false, per: '', hidden: false, ...c, nameKk: kk[i].name, specKk: kk[i].spec }));
+  return ru.map((c, i) => ({ from: false, per: '', url: '', hidden: false, ...c, nameKk: kk[i].name, specKk: kk[i].spec }));
 }
 
 const catalogCards = () => CATALOG || catalogDefaults();

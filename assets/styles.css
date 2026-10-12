@@ -676,10 +676,14 @@ h1 {
 .eq__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 @media (max-width: 1100px) { .eq__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .eq__tile { display: flex; flex-direction: column; overflow: hidden; background: #fff; border: 1px solid var(--line-soft); border-radius: 16px; }
+/* плитка со ссылкой на товар — поднимается при наведении, как карточки расчёта */
+.eq__tile--link { color: inherit; text-decoration: none; transition: transform .2s, border-color .2s; }
+.eq__tile--link:hover { transform: translateY(-3px); border-color: #C9D1DB; }
 .eq__ph { position: relative; aspect-ratio: 4 / 3.4; background: var(--panel-2); }
 /* картинка вписана по центру целиком: высокое фото не растягивает плитку */
 .eq__ph img { position: absolute; inset: 0; width: 60%; height: 60%; margin: auto; object-fit: contain; }
-.eq__ph--photo img { width: 90%; height: 90%; } /* фото из админки — крупнее иконки, целиком */
+.eq__ph--photo { background: #fff; } /* фото товара на белом фоне — плитка без серой подложки */
+.eq__ph--photo img { width: 90%; height: 90%; } /* фото — крупнее иконки, целиком */
 .eq__body { display: flex; flex: 1; flex-direction: column; gap: 4px; padding: 14px 16px 16px; }
 .eq__name { margin: 0; font: 600 16px/1.3 var(--f-body); }
 .eq__spec { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.35; }

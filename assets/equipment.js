@@ -19,15 +19,16 @@ function renderEquipment() {
   tabs.setAttribute('aria-label', t('Разделы оборудования'));
   tabs.innerHTML = types.map((ty) => `<button type="button" class="eq__type" data-type="${ty.id}" aria-pressed="${ty.id === eqCur}">`
     + `<img src="assets/icons/${ty.ic}.webp" alt=""><span>${soft(t(ty.t))}</span><i>${cards.filter((c) => c.type === ty.id).length}</i></button>`).join('');
+  // есть ссылка на товар — вся плитка ведёт в магазин (новая вкладка)
   document.querySelector('#eqGrid').innerHTML = cards.filter((c) => c.type === eqCur).map((c) => `
-    <article class="eq__tile">
-      <div class="eq__ph${c.pic.startsWith('https://') ? ' eq__ph--photo' : ''}"><img src="${picUrl(c.pic)}" alt=""></div>
+    <${c.url ? `a class="eq__tile eq__tile--link" href="${c.url}" target="_blank" rel="noopener"` : 'article class="eq__tile"'}>
+      <div class="eq__ph${c.pic.startsWith('icons/') ? '' : ' eq__ph--photo'}"><img src="${picUrl(c.pic)}" alt=""></div>
       <div class="eq__body">
         <h2 class="eq__name">${cardText(c, 'name')}</h2>
         ${c.spec ? `<p class="eq__spec">${cardText(c, 'spec')}</p>` : ''}
         <p class="eq__price">${cardPrice(c)}</p>
       </div>
-    </article>`).join('');
+    </${c.url ? 'a' : 'article'}>`).join('');
 }
 
 document.querySelector('#eqTypes').addEventListener('click', (e) => {
