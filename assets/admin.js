@@ -123,6 +123,13 @@ function pathCards(p, title, low) {
       ${field(`${p}.hdd.name`, 'Жёсткий диск (<span data-wifi-gt></span>) — наименование')}
     </div>
     <div class="hdd" data-hdd></div>
+    ${p === 'flats' ? `
+    <h3>Камеры в лифте</h3>
+    <p>Есть хоть одна камера в лифте — все камеры с регистратором, даже если камер мало. Камера — та же, что выше.</p>
+    <div class="grid">
+      ${field(`${p}.lift.bridge.name`, 'Радиомост (на каждую камеру в лифте) — наименование')}<label class="f"><span>Цена за шт</span>${money(`data-k="${p}.lift.bridge.price" data-num`)}</label>
+      ${field(`${p}.lift.install.name`, 'Установка камеры в лифт (вместо обычной установки) — наименование')}<label class="f"><span>Цена за камеру</span>${money(`data-k="${p}.lift.install.price" data-num`)}</label>
+    </div>` : ''}
   </section>
 
   <section class="card" data-path="${p}">
@@ -134,6 +141,8 @@ function pathCards(p, title, low) {
     <div class="mt" data-group="poe"></div>
     <h3>Уличные камеры — на каждую, при любом количестве</h3>
     <div class="mt" data-group="out"></div>
+    ${p === 'flats' ? `<h3>Камеры в лифте — на каждую</h3>
+    <div class="mt" data-group="lift"></div>` : ''}
   </section>`;
 }
 $('#paths').innerHTML = PATH_CARDS.map(([p, t, l]) => pathCards(p, t, l)).join('');

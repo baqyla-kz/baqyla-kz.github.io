@@ -222,9 +222,9 @@ function daysRange(d) {
 // варианты на шаге «Запись»: до wifiMaxCams камер — Wi-Fi камеры без регистратора, только SD;
 // больше — регистратор, три диска, начиная с того, где хватит хотя бы на 3 дня
 function storeOptions(s) {
-  const n = counts(s).total;
+  const c = counts(s), n = c.total;
   if (!n) return [];
-  if (n <= PATHS[s.plan].wifiMaxCams) return [SD];
+  if (!wired(PATHS[s.plan], c)) return [SD];
   let i = DISKS.findIndex((d) => storeDays(d, n) >= 3);
   if (i < 0) i = DISKS.length - 1;
   return DISKS.slice(Math.max(0, Math.min(i, DISKS.length - 3)), i + 3);
@@ -270,23 +270,38 @@ const HOME = {
 // многоквартирный дом и коммерция — тот же путь, что частный: по умолчанию те же камеры, регистраторы, диски и материалы,
 // но Wi-Fi камеры (Ezviz, SD-карта в комплекте) — только до 2 камер, с 3 камер — регистратор
 const FLATS = { ...JSON.parse(JSON.stringify(HOME)), plan: 'flats', wifiMaxCams: 2 };
+// камеры в лифте (только ЖК): хоть одна — все камеры проводные, с регистратором (каналы — по всем камерам вместе);
+// на каждую камеру в лифте — радиомост (сигнал из шахты по воздуху), своя установка и материалы из materials.lift
+FLATS.lift = {
+  bridge: { name: 'Радиомост до 1 км', price: 45000 },
+  install: { name: 'Установка камеры в лифт', price: 20000 }, // вместо обычной установки
+};
+FLATS.materials.lift = [{ name: 'Гермобокс', unit: 'шт', perCam: 1 }];
 const BIZ = { ...JSON.parse(JSON.stringify(HOME)), plan: 'business', wifiMaxCams: 2 };
 const PATHS = { home: HOME, flats: FLATS, business: BIZ }; // ключ — PLANS
 
 const hasPrice = (p) => typeof p === 'number';
+// камеры с регистратором: больше wifiMaxCams или есть камера в лифте
+const wired = (P, c) => c.total > P.wifiMaxCams || c.lift > 0;
 
 // состав «Доп. материалов»: [{ name, qty, unit, price? }]; P — HOME, FLATS или BIZ
 function pathMaterials(P, s, c) {
   const m = P.materials, per = (p) => (p.perCam === 'cable' ? s.cable : p.perCam);
   const take = (list, cams) => list.map((p) => ({ name: t(p.name), qty: cams * per(p), unit: t(p.unit), price: p.price }));
-  return [...take(c.total <= P.wifiMaxCams ? m.wifi : m.poe, c.total), ...take(m.out, c.out)].filter((p) => p.qty > 0);
+  const all = [...take(wired(P, c) ? m.poe : m.wifi, c.total), ...take(m.out, c.out), ...take(m.lift || [], c.lift)].filter((p) => p.qty > 0);
+  // одна позиция в разных группах (гермобокс на улицу и в лифт) — одной строкой
+  return all.reduce((acc, p) => {
+    const same = acc.find((q) => q.name === p.name && q.unit === p.unit && q.price === p.price);
+    if (same) same.qty += p.qty; else acc.push({ ...p });
+    return acc;
+  }, []);
 }
 
 // строки сметы объекта; без цены — price не задан (undefined), sum 0. Названия — уже на языке страницы (t, L)
 function pathLines(P, s, c, store) {
   const eq = [], work = [];
   const add = (list, name, qty, unit, price, ic) => qty > 0 && list.push({ name: t(name), qty, unit: t(unit), price, sum: hasPrice(price) ? qty * price : 0, ic });
-  const wifi = c.total <= P.wifiMaxCams;
+  const wifi = !wired(P, c);
   const cam = wifi ? P.camWifi : (s.addons || []).includes('talk') ? P.camTalk : P.cam;
   add(eq, cam.name, c.total, 'шт', cam.price, 'camera');
   if (wifi) eq.push({ name: t(P.sd.name), qty: c.total, unit: t('шт'), price: 0, sum: 0, included: true, ic: 'sd' }); // в комплекте с камерой
@@ -295,12 +310,14 @@ function pathLines(P, s, c, store) {
     add(eq, L(`${P.nvr.name} ${ch} ${plural(ch, 'канал', 'канала', 'каналов')}`, `${ch} арналы ${lc(t(P.nvr.name))}`), Math.ceil(c.total / ch), 'шт', P.nvr.prices[ch], 'nvr');
   }
   if (store && !store.sd) add(eq, L(`${P.hdd.name} ${store.tb} ТБ`, `${store.tb} ТБ ${lc(t(P.hdd.name))}`), store.qty, 'шт', P.hdd.prices[store.tb], 'hdd');
+  if (P.lift) add(eq, P.lift.bridge.name, c.lift, 'шт', P.lift.bridge.price, 'router');
   // «Доп. материалы» — одна строка со стрелкой: внутри состав. Сумма — по позициям с ценой; есть без цены — partial, итог «от»
   const parts = pathMaterials(P, s, c).map((p) => ({ ...p, sum: hasPrice(p.price) ? p.qty * p.price : 0 }));
   const sum = parts.reduce((a, p) => a + p.sum, 0);
   const partial = !parts.every((p) => hasPrice(p.price));
   if (parts.length) eq.push({ name: t('Доп. материалы'), parts, price: sum || !partial ? sum : undefined, sum, partial, ic: 'box' }); // qty нет — одна строка
-  add(work, PRICE.install.name, c.total, 'шт', PRICE.install.price, 'tools');
+  add(work, PRICE.install.name, c.total - c.lift, 'шт', PRICE.install.price, 'tools');
+  if (P.lift) add(work, P.lift.install.name, c.lift, 'шт', P.lift.install.price, 'tools');
   return { eq, work };
 }
 
@@ -368,8 +385,11 @@ function applySettings(v) {
     const prices = {};
     for (const tb of HDD_SIZES) { const p = num(h.hdd && h.hdd.prices && h.hdd.prices[tb]); if (p !== undefined) prices[tb] = p; }
     P.hdd = { name: str(h.hdd && h.hdd.name, P.hdd.name), prices };
+    // лифт ещё ни разу не сохраняли в админке — остаются значения по умолчанию (FLATS.lift)
+    if (P.lift && h.lift) for (const k of ['bridge', 'install']) if (h.lift[k]) P.lift[k] = item(h.lift[k], P.lift[k]);
     if (h.materials && typeof h.materials === 'object') {
-      for (const g of ['wifi', 'poe', 'out']) {
+      for (const g of ['wifi', 'poe', 'out', 'lift']) {
+        if (g === 'lift' && !P.lift) continue;
         const list = h.materials[g];
         if (!Array.isArray(list)) continue;
         P.materials[g] = list.slice(0, 20).filter((m) => m && str(m.name)).map((m) => {
@@ -379,6 +399,13 @@ function applySettings(v) {
           return o;
         });
       }
+    }
+    // материалы лифта ещё не сохраняли — цена гермобокса та же, что у уличного
+    if (P.lift && !(h.materials && Array.isArray(h.materials.lift))) {
+      P.materials.lift = P.materials.lift.map((m) => {
+        const same = m.price === undefined && P.materials.out.find((o) => o.name === m.name && hasPrice(o.price));
+        return same ? { ...m, price: same.price } : m;
+      });
     }
   };
   path(HOME, v.home);
@@ -396,7 +423,7 @@ function estimate(s) {
 
   // «Дополнительно»: без цены — строка «по запросу», в итог не входит (sum 0, price null)
   // с регистратором: «Говорить через камеру» уже в цене камеры (камера с динамиком) — отдельной строкой не дублируем
-  const inCam = (id) => id === 'talk' && c.total > P.wifiMaxCams;
+  const inCam = (id) => id === 'talk' && wired(P, c);
   const extra = (s.addons || []).filter((id) => ADDON[id] && !inCam(id)).map((id) => {
     const a = ADDON[id], qty = a.per === 'cam' ? c.total : 1;
     return { name: t(a.t), qty, unit: t('шт'), price: a.price, sum: a.price === null ? 0 : qty * a.price, addon: id, ic: a.ic, from: a.from };
