@@ -43,9 +43,10 @@
     <section class="hero wide">
       <h1>Оборудование</h1>
     </section>
-    <!-- каталог ещё не готов: пока только «Скоро» -->
-    <section class="wide soon soon--empty">
-      <p class="soon__badge">Скоро</p>
+    <!-- каталог: на компьютере разделы слева, плитки справа; на телефоне разделы вкладками сверху (equipment.js) -->
+    <section class="wide eq">
+      <div class="eq__types" id="eqTypes" role="group"></div>
+      <div class="eq__grid" id="eqGrid"></div>
     </section>
   </main>
 
@@ -59,5 +60,7 @@
   </section>
 
   <script src="assets/i18n.js"></script>
+  <script src="assets/data.js"></script>
+  <script src="assets/equipment.js"></script>
 </body>
 </html>

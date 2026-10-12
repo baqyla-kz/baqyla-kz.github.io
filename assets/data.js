@@ -343,11 +343,13 @@ const SITE_IMG = `${CRM.url}/storage/v1/object/public/site/`;
 const picOk = (p) => typeof p === 'string' && (/^[a-z0-9_-]+(\/[a-z0-9_-]+)*$/.test(p) || (p.startsWith(SITE_IMG) && !p.includes('..') && /^[\w./-]+$/.test(p.slice(SITE_IMG.length))));
 const picUrl = (p) => (p.startsWith('https://') ? p : `assets/${p}.webp`);
 
+// названия из админки сайт вставляет как HTML — без < > " ни тег, ни атрибут не подставить
+const cleanStr = (x, d, max = 80) => (typeof x === 'string' && x.trim() ? x.replace(/[<>"]/g, '').trim().slice(0, max) || d : d);
+const cleanNum = (x) => (typeof x === 'number' && isFinite(x) && x >= 0 && x <= 1e8 ? Math.round(x) : undefined);
+
 function applySettings(v) {
   if (!v || typeof v !== 'object') return false;
-  // названия из админки сайт вставляет как HTML — без < > " ни тег, ни атрибут не подставить
-  const str = (x, d) => (typeof x === 'string' && x.trim() ? x.replace(/[<>"]/g, '').trim().slice(0, 80) || d : d);
-  const num = (x) => (typeof x === 'number' && isFinite(x) && x >= 0 && x <= 1e8 ? Math.round(x) : undefined);
+  const str = cleanStr, num = cleanNum;
   const int = (x, lo, hi, d) => (Number.isInteger(x) && x >= lo && x <= hi ? x : d);
   const item = (src, def) => { // { name, price } — цена может отсутствовать
     const o = { name: str(src && src.name, def.name) };
@@ -413,6 +415,107 @@ function applySettings(v) {
   path(FLATS, v.flats || (v.home && { ...v.home, wifiMaxCams: FLATS.wifiMaxCams }));
   path(BIZ, v.business || (v.home && { ...v.home, wifiMaxCams: BIZ.wifiMaxCams }));
   return true;
+}
+
+// ---------- каталог «Оборудование» ----------
+// Карточки правятся в админке (вкладка «Оборудование») → site_settings, ключ CATALOG_KEY: { cards: [карточка, …] }.
+// Карточка: { id, type (раздел из EQ_TYPES), name, nameKk, spec, specKk, price?, from, per, pic, hidden }.
+// Текст по-казахски — своё поле; пустое — перевод по словарю KK, нет и там — по-русски. Нет цены — «по запросу».
+// Каталог ещё не сохраняли — карточки собираются из цен расчёта частного дома (catalogDefaults).
+const CATALOG_KEY = 'catalog';
+const CATALOG_MAX = 100;
+const EQ_TYPES = [
+  { id: 'cam', t: 'Камеры', ic: 'camera' },
+  { id: 'nvr', t: 'Регистраторы', ic: 'nvr' },
+  { id: 'hdd', t: 'Диски', ic: 'hdd' },
+  { id: 'more', t: 'Дополнительно', ic: 'box' },
+];
+const EQ_PER = { month: 'в месяц', m: 'за метр' }; // после цены; на сайте — «в месяц» и «/ м»
+let CATALOG = null; // null — из админки ещё не сохраняли
+
+function applyCatalog(v) {
+  if (!v || !Array.isArray(v.cards)) return false;
+  const ids = new Set();
+  CATALOG = v.cards.slice(0, CATALOG_MAX).filter((c) => c && EQ_TYPES.some((ty) => ty.id === c.type) && cleanStr(c.name)).map((c, i) => {
+    let id = typeof c.id === 'string' && /^[\w-]{1,40}$/.test(c.id) ? c.id : `c${i}`;
+    if (ids.has(id)) id = `${id}-${i}`;
+    ids.add(id);
+    const o = {
+      id, type: c.type,
+      name: cleanStr(c.name), nameKk: cleanStr(c.nameKk, ''),
+      spec: cleanStr(c.spec, '', 120), specKk: cleanStr(c.specKk, '', 120),
+      from: c.from === true, per: Object.prototype.hasOwnProperty.call(EQ_PER, c.per) ? c.per : '',
+      pic: picOk(c.pic) ? c.pic : `icons/${EQ_TYPES.find((ty) => ty.id === c.type).ic}`,
+      hidden: c.hidden === true,
+    };
+    const p = cleanNum(c.price);
+    if (p !== undefined) o.price = p;
+    return o;
+  });
+  return true;
+}
+
+// карточки по умолчанию — из цен расчёта (частный дом; радиомост — многоквартирный), позиции без цены не берём
+function catalogDefaults() {
+  const build = () => {
+    const P = HOME, out = [];
+    const add = (type, id, o) => hasPrice(o.price) && out.push({ id, type, ...o });
+    add('cam', 'cam-wifi', { name: t(P.camWifi.name), spec: L('Wi‑Fi, запись на карту в камере', 'Wi‑Fi, камерадағы картаға жазады'), price: P.camWifi.price, pic: 'icons/camera' });
+    add('cam', 'cam', { name: t(P.cam.name), spec: L('По кабелю, запись на регистратор', 'Кабельмен, регистраторға жазады'), price: P.cam.price, pic: 'icons/camera' });
+    add('cam', 'cam-talk', { name: t(P.camTalk.name), spec: L('Можно говорить через камеру', 'Камера арқылы сөйлесуге болады'), price: P.camTalk.price, pic: 'icons/camera' });
+    for (const ch of NVR_CH) {
+      add('nvr', `nvr-${ch}`, { name: L(`${P.nvr.name} ${ch} ${plural(ch, 'канал', 'канала', 'каналов')}`, `${ch} арналы ${lc(t(P.nvr.name))}`),
+        spec: L(`До ${ch} камер`, `${ch} камераға дейін`), price: P.nvr.prices[ch], pic: 'icons/nvr' });
+    }
+    for (const tb of HDD_SIZES) {
+      const r = daysRange(storeDays({ tb, qty: 1 }, 4));
+      add('hdd', `hdd-${tb}`, { name: L(`${P.hdd.name} ${tb} ТБ`, `${tb} ТБ ${lc(t(P.hdd.name))}`), spec: L(`4 камеры пишут ${r.text}`, `4 камера ${r.text} жазады`), price: P.hdd.prices[tb], pic: 'icons/hdd' });
+    }
+    add('hdd', 'sd', { name: t(P.sd.name), spec: L('Для Wi‑Fi камеры', 'Wi‑Fi камераға'), price: P.sd.price, pic: 'icons/sd' });
+    const m = ADDON.monitor;
+    add('more', 'monitor', { name: t(m.t), spec: t(m.d), price: m.price, from: !!m.from, pic: 'icons/monitor' });
+    add('more', 'bridge', { name: t(FLATS.lift.bridge.name), spec: L('Сигнал из лифта без кабеля', 'Лифттен сигналды кабельсіз жеткізеді'), price: FLATS.lift.bridge.price, pic: 'icons/router' });
+    add('more', 'router4g', { name: t(PRICE.router4g.name), spec: L('Если на объекте нет интернета', 'Интернет жоқ болса'), price: PRICE.router4g.price, per: 'month', pic: 'icons/router' });
+    // материалы: одна позиция в разных группах (гермобокс и на улицу, и в лифт) — одной карточкой
+    const seen = new Set();
+    for (const p of Object.values(P.materials).flat()) {
+      if (seen.has(p.name)) continue;
+      seen.add(p.name);
+      const pic = /RJ45/i.test(p.name) ? 'rj45' : /гофр/i.test(p.name) ? 'conduit' : /кабел/i.test(p.name) ? 'cable' : 'box';
+      add('more', `mat-${seen.size}`, { name: t(p.name), spec: '', price: p.price, per: p.unit === 'м' ? 'm' : '', pic: `icons/${pic}` });
+    }
+    return out;
+  };
+  const ru = inLang('ru', build), kk = inLang('kk', build);
+  return ru.map((c, i) => ({ from: false, per: '', hidden: false, ...c, nameKk: kk[i].name, specKk: kk[i].spec }));
+}
+
+const catalogCards = () => CATALOG || catalogDefaults();
+
+// настройки из админки (admin.html → Supabase site_settings): сначала последние известные из браузера — без мигания цен,
+// потом свежие с сервера → fresh() (перерисовать страницу); не получилось — остаются значения по умолчанию.
+// withCatalog — ещё и карточки «Оборудования»
+const SETTINGS_CACHE = 'baqyla-settings-v1';
+const CATALOG_CACHE = 'baqyla-catalog-v1';
+function loadSettings(fresh, withCatalog) {
+  const parts = [[SETTINGS_KEY, SETTINGS_CACHE, applySettings]];
+  if (withCatalog) parts.push([CATALOG_KEY, CATALOG_CACHE, applyCatalog]);
+  for (const [, cache, apply] of parts) {
+    try { apply(JSON.parse(localStorage.getItem(cache))); } catch (_) { /* нет кэша */ }
+  }
+  fetch(`${CRM.url}/rest/v1/site_settings?key=in.(${parts.map((p) => p[0]).join(',')})&select=key,value`, { headers: { apikey: CRM.key } })
+    .then((r) => (r.ok ? r.json() : []))
+    .then((rows) => {
+      let got = false;
+      for (const [key, cache, apply] of parts) {
+        const row = rows.find((x) => x.key === key);
+        if (!row || !apply(row.value)) continue;
+        got = true;
+        try { localStorage.setItem(cache, JSON.stringify(row.value)); } catch (_) { /* приватный режим */ }
+      }
+      if (got) fresh();
+    })
+    .catch(() => {});
 }
 
 function estimate(s) {

@@ -7,7 +7,7 @@
   <!-- CSP: скрипты только свои, запросы только в Supabase CRM, страницу нельзя отправить на чужой адрес -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://gzwexqyxllqkyiarrcae.supabase.co; connect-src https://gzwexqyxllqkyiarrcae.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'">
   <meta name="referrer" content="no-referrer">
-  <title>Baqyla — настройки расчёта</title>
+  <title>Baqyla — настройки сайта</title>
   <link rel="icon" href="assets/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -85,6 +85,40 @@
     .ph__seg button { height: 30px; padding: 0 12px; border: 0; border-radius: 8px; background: none; font-weight: 600; font-size: 13px; color: var(--muted); cursor: pointer; }
     .ph__seg button[aria-pressed="true"] { background: var(--text); color: #fff; }
     .ph__busy { opacity: .5; pointer-events: none; }
+    /* разделы админки */
+    .adm__tabs { display: inline-flex; gap: 2px; margin: -8px 0 22px; padding: 4px; background: var(--panel-2); border-radius: 12px; }
+    .adm__tabs button { padding: 8px 18px; border: 0; border-radius: 9px; background: none; color: var(--muted); font: 500 15px var(--f-body); cursor: pointer; }
+    .adm__tabs button[aria-pressed="true"] { background: #fff; color: var(--text); box-shadow: 0 1px 2px rgba(14,18,24,.08), 0 1px 6px rgba(14,18,24,.06); }
+    /* карточки «Оборудования»: фото слева, поля справа */
+    .card h2 .ce__n { margin-left: 6px; font: 500 13px var(--f-mono); color: var(--faint); }
+    #catNote { margin-bottom: 0; }
+    .ce-list { display: grid; gap: 12px; margin-bottom: 12px; }
+    .ce { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 16px; padding: 14px; background: var(--bg); border-radius: 16px; }
+    .ce.is-hidden { opacity: .6; }
+    .ce__pic { display: grid; gap: 8px; align-content: start; }
+    .ce__ph { position: relative; aspect-ratio: 4 / 3.4; background: #fff; border-radius: 12px; }
+    .ce__ph img { position: absolute; inset: 0; width: 60%; height: 60%; margin: auto; object-fit: contain; }
+    .ce__ph--photo img { width: 90%; height: 90%; }
+    .ce__pic .btn { height: 34px; padding: 0 10px; font-size: 13px; border-width: 1.5px; }
+    .ce__pic input[type=file] { display: none; }
+    .ce__f { display: grid; gap: 10px; }
+    .ce__row { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .ce__row--3 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); }
+    .ce__chk { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); cursor: pointer; }
+    .ce__acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+    .ce__mv { display: inline-flex; gap: 4px; }
+    .ce__mv button, .ce__del { height: 34px; padding: 0 12px; border: 0; border-radius: 9px; background: #fff; color: var(--muted); font: 600 14px var(--f-body); cursor: pointer; }
+    .ce__mv button:disabled { opacity: .35; cursor: default; }
+    .ce__del { margin-left: auto; }
+    .ce__del:hover { background: #FDECEC; color: var(--rec); }
+    .ce__busy { opacity: .5; pointer-events: none; }
+    select.in { appearance: auto; }
+    @media (max-width: 600px) {
+      .ce { grid-template-columns: minmax(0, 1fr); }
+      .ce__pic { grid-template-columns: 110px auto; align-items: start; }
+      .ce__ph { grid-row: span 2; }
+      .ce__row, .ce__row--3 { grid-template-columns: minmax(0, 1fr); }
+    }
     [hidden] { display: none !important; }
   </style>
 </head>
@@ -128,8 +162,15 @@
     </section>
 
     <div id="editor" hidden>
-      <h1>Настройки расчёта</h1>
+      <h1 id="admT">Настройки расчёта</h1>
       <div class="adm__who"><span id="who"></span><span id="stamp"></span><button type="button" id="logout">Выйти</button></div>
+      <!-- разделы админки: настройки расчёта и карточки страницы «Оборудование» -->
+      <nav class="adm__tabs" id="admTabs">
+        <button type="button" data-tab="calc" aria-pressed="true">Расчёт</button>
+        <button type="button" data-tab="catalog" aria-pressed="false">Оборудование</button>
+      </nav>
+
+      <div id="tabCalc">
 
       <section class="card">
         <h2>Установка</h2>
@@ -148,6 +189,16 @@
         <p>Одинаково для всех объектов. Перетащите фото мышью или пальцем, масштаб — ползунком. Новое фото сразу загружается, на сайт попадёт после «Сохранить».</p>
         <div class="ph-grid" id="phGrid"></div>
       </section>
+      </div>
+
+      <!-- карточки страницы «Оборудование»: строит admin.js (renderCatalog) -->
+      <div id="tabCatalog" hidden>
+        <section class="card">
+          <h2>Страница «Оборудование»</h2>
+          <p id="catNote"></p>
+        </section>
+        <div id="catBox"></div>
+      </div>
     </div>
   </main>
 

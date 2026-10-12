@@ -1,4 +1,5 @@
-// Админка (admin.html): настройки расчёта → Supabase, таблица site_settings, ключ SETTINGS_KEY (data.js).
+// Админка (admin.html): настройки расчёта → Supabase, таблица site_settings, ключ SETTINGS_KEY (data.js);
+// вкладка «Оборудование» — карточки страницы equipment.html, ключ CATALOG_KEY (data.js: applyCatalog, catalogDefaults).
 // Вход — логин и пароль CRM (Supabase Auth, «логин» → логин@team.baqyla.kz), код 2FA — если MFA = true; менять может только тот, у кого право на сайт (is_site_admin).
 // Значения по умолчанию и проверка — в data.js (HOME, FLATS, BIZ, PRICE.install, applySettings, calcSettings), сайт читает то же.
 
@@ -8,7 +9,7 @@ const LOGIN_DOMAIN = 'team.baqyla.kz';
 const SESSION = 'baqyla-admin-session-v2';
 // 2FA пока выключена: вход по логину и паролю. Включить — true здесь и is_site_admin() с aal2 в site-security.sql
 const MFA = false;
-let session = null, dirty = false;
+let session = null, dirty = false, catDirty = false; // dirty — расчёт, catDirty — «Оборудование»
 
 const fmtDate = (iso) => new Date(iso).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
 const loginOf = (email) => (email || '').replace(`@${LOGIN_DOMAIN}`, '');
@@ -327,7 +328,7 @@ $('#editor').addEventListener('click', (e) => {
   msg('Есть несохранённые изменения');
 });
 
-addEventListener('beforeunload', (e) => { if (dirty) e.preventDefault(); });
+addEventListener('beforeunload', (e) => { if (dirty || catDirty) e.preventDefault(); });
 
 
 // ---------- фото «Дополнительно» ----------
@@ -456,6 +457,18 @@ async function toWebp(file) {
   c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
   return new Promise((ok, bad) => c.toBlob((b) => (b ? ok(b) : bad(new Error('webp'))), 'image/webp', 0.85));
 }
+// → ссылка на фото; null — сессия истекла (уже вышли)
+async function uploadImg(file, path) {
+  const blob = await toWebp(file);
+  const r = await fetch(`${CRM.url}/storage/v1/object/site/${path}`, {
+    method: 'POST',
+    headers: { apikey: CRM.key, Authorization: `Bearer ${session.token}`, 'Content-Type': 'image/webp' },
+    body: blob,
+  });
+  if (r.status === 401) { logout('Сессия истекла — войдите снова'); return null; }
+  if (!r.ok) throw new Error(r.status === 403 ? 'Нет прав загружать фото' : 'Не получилось загрузить фото');
+  return SITE_IMG + path;
+}
 $('#phGrid').addEventListener('change', async (e) => {
   if (!e.target.matches('[data-file]')) return;
   e.stopPropagation();
@@ -465,17 +478,10 @@ $('#phGrid').addEventListener('change', async (e) => {
   t.classList.add('ph__busy');
   msg('Загружаем фото…');
   try {
-    const blob = await toWebp(file);
-    const path = `addons/${id}${frames[id].ba ? `-${half ? 'b' : 'a'}` : ''}-${Date.now()}.webp`;
-    const r = await fetch(`${CRM.url}/storage/v1/object/site/${path}`, {
-      method: 'POST',
-      headers: { apikey: CRM.key, Authorization: `Bearer ${session.token}`, 'Content-Type': 'image/webp' },
-      body: blob,
-    });
-    if (r.status === 401) return logout('Сессия истекла — войдите снова');
-    if (!r.ok) throw new Error(r.status === 403 ? 'Нет прав загружать фото' : 'Не получилось загрузить фото');
+    const url = await uploadImg(file, `addons/${id}${frames[id].ba ? `-${half ? 'b' : 'a'}` : ''}-${Date.now()}.webp`);
+    if (!url) return;
     const f = frameOf(id, half);
-    f.pic = SITE_IMG + path;
+    f.pic = url;
     if (f.move) f.move = [0, 0, 1]; else f.cover = [50, 50, 1];
     rerenderTile(id);
     dirty = true;
@@ -486,10 +492,150 @@ $('#phGrid').addEventListener('change', async (e) => {
   }
 });
 
+
+// ---------- вкладка «Оборудование»: карточки страницы equipment.html ----------
+// cards — рабочая копия каталога; порядок в массиве = порядок на сайте внутри раздела.
+let cards = [];
+const typeOf = (id) => EQ_TYPES.find((ty) => ty.id === id);
+const cardOf = (el) => cards.find((c) => c.id === el.closest('[data-cid]').dataset.cid);
+const sameType = (c) => cards.filter((x) => x.type === c.type);
+
+function cardEditor(c) {
+  const list = sameType(c), i = list.indexOf(c), photo = c.pic.startsWith('https://');
+  const opt = (v, label, cur) => `<option value="${v}"${v === cur ? ' selected' : ''}>${label}</option>`;
+  return `<div class="ce${c.hidden ? ' is-hidden' : ''}" data-cid="${c.id}">
+    <div class="ce__pic">
+      <span class="ce__ph${photo ? ' ce__ph--photo' : ''}"><img src="${picUrl(c.pic)}" alt=""></span>
+      <label class="btn btn--ghost">${photo ? 'Заменить фото' : 'Загрузить фото'}<input type="file" accept="image/*" data-cfile></label>
+      ${photo ? '<button type="button" class="btn btn--ghost" data-cpic-reset>Убрать фото</button>' : ''}
+    </div>
+    <div class="ce__f">
+      <div class="ce__row">
+        <label class="f"><span>Название</span><input class="in" data-c="name" maxlength="80" value="${esc(c.name)}"></label>
+        <label class="f"><span>Название по-казахски</span><input class="in" data-c="nameKk" maxlength="80" value="${esc(c.nameKk)}" placeholder="пусто — по словарю или по-русски"></label>
+        <label class="f"><span>Подпись — одна строка о главном</span><input class="in" data-c="spec" maxlength="120" value="${esc(c.spec)}"></label>
+        <label class="f"><span>Подпись по-казахски</span><input class="in" data-c="specKk" maxlength="120" value="${esc(c.specKk)}"></label>
+      </div>
+      <div class="ce__row ce__row--3">
+        <label class="f"><span>Цена</span><span class="money"><input class="in in--num" type="number" min="0" step="1" inputmode="numeric" placeholder="по запросу" data-c="price" value="${hasPrice(c.price) ? c.price : ''}"></span></label>
+        <label class="f"><span>После цены</span><select class="in" data-c="per">${opt('', '—', c.per)}${Object.entries(EQ_PER).map(([v, l]) => opt(v, l, c.per)).join('')}</select></label>
+        <label class="f"><span>Раздел</span><select class="in" data-c="type">${EQ_TYPES.map((ty) => opt(ty.id, ty.t, c.type)).join('')}</select></label>
+      </div>
+      <div class="ce__acts">
+        <label class="ce__chk"><input type="checkbox" data-c="from"${c.from ? ' checked' : ''}> «от» перед ценой</label>
+        <label class="ce__chk"><input type="checkbox" data-c="hidden"${c.hidden ? ' checked' : ''}> Скрыть на сайте</label>
+        <span class="ce__mv"><button type="button" data-cmove="-1" aria-label="Выше"${i ? '' : ' disabled'}>↑</button><button type="button" data-cmove="1" aria-label="Ниже"${i < list.length - 1 ? '' : ' disabled'}>↓</button></span>
+        <button type="button" class="ce__del" data-cdel>Удалить</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderCatalog() {
+  $('#catNote').textContent = CATALOG
+    ? 'Карточки по разделам — в том же порядке, что на сайте. Пустая цена — на сайте «по запросу». Новое фото сразу загружается, на сайт попадёт после «Сохранить».'
+    : 'Каталог ещё не сохраняли — карточки собраны из цен расчёта (частный дом). После «Сохранить» они живут отдельно: цены здесь и в расчёте друг от друга не зависят.';
+  $('#catBox').innerHTML = EQ_TYPES.map((ty) => {
+    const list = cards.filter((c) => c.type === ty.id);
+    return `<section class="card"><h2>${ty.t}<span class="ce__n">${list.length}</span></h2>
+      <div class="ce-list">${list.map(cardEditor).join('')}</div>
+      <button type="button" class="mt__add" data-cadd="${ty.id}"${cards.length >= CATALOG_MAX ? ' disabled' : ''}>+ Добавить карточку</button></section>`;
+  }).join('');
+}
+
+function catChanged() { catDirty = true; msg('Есть несохранённые изменения'); }
+
+// поля — в рабочую копию; раздел меняется по change (карточка переезжает)
+$('#tabCatalog').addEventListener('input', (e) => {
+  e.stopPropagation(); // не путать с полями расчёта
+  const k = e.target.dataset.c;
+  if (!k || e.target.type === 'checkbox' || e.target.tagName === 'SELECT') return;
+  const c = cardOf(e.target);
+  if (k === 'price') { const p = numOf(e.target); if (p === undefined) delete c.price; else c.price = Math.round(p); } else c[k] = e.target.value;
+  catChanged();
+});
+$('#tabCatalog').addEventListener('change', async (e) => {
+  e.stopPropagation();
+  const k = e.target.dataset.c;
+  if (k && (e.target.type === 'checkbox' || e.target.tagName === 'SELECT')) {
+    const c = cardOf(e.target);
+    c[k] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    if (k === 'type') { // переехала в другой раздел — в конец его списка
+      cards.splice(cards.indexOf(c), 1);
+      cards.push(c);
+      if (!c.pic.startsWith('https://')) c.pic = `icons/${typeOf(c.type).ic}`;
+      renderCatalog();
+      $(`[data-cid="${c.id}"]`).scrollIntoView({ block: 'center' });
+    } else if (k === 'hidden') e.target.closest('.ce').classList.toggle('is-hidden', c.hidden);
+    catChanged();
+    return;
+  }
+  if (!e.target.matches('[data-cfile]')) return;
+  const file = e.target.files[0], box = e.target.closest('.ce'), c = cardOf(box);
+  if (!file) return;
+  if (!file.type.startsWith('image/')) return msg('Это не картинка', 'bad');
+  box.classList.add('ce__busy');
+  msg('Загружаем фото…');
+  try {
+    const url = await uploadImg(file, `catalog/${c.id}-${Date.now()}.webp`);
+    if (!url) return;
+    c.pic = url;
+    renderCatalog();
+    catDirty = true;
+    msg('Фото загружено — нажмите «Сохранить», чтобы оно появилось на сайте');
+  } catch (err) {
+    msg(err.message === 'webp' ? 'Не получилось обработать картинку' : err.message, 'bad');
+    box.classList.remove('ce__busy');
+  }
+});
+$('#tabCatalog').addEventListener('click', (e) => {
+  e.stopPropagation(); // «+ Добавить» — не материалы расчёта
+  const add = e.target.closest('[data-cadd]');
+  if (add) {
+    const ty = typeOf(add.dataset.cadd);
+    const c = { id: `c${Date.now().toString(36)}`, type: ty.id, name: '', nameKk: '', spec: '', specKk: '', from: false, per: '', pic: `icons/${ty.ic}`, hidden: false };
+    cards.push(c);
+    renderCatalog();
+    $(`[data-cid="${c.id}"] [data-c="name"]`).focus();
+    return catChanged();
+  }
+  if (!e.target.closest('[data-cid]')) return;
+  const c = cardOf(e.target);
+  if (e.target.closest('[data-cpic-reset]')) {
+    c.pic = `icons/${typeOf(c.type).ic}`;
+  } else if (e.target.closest('[data-cmove]')) {
+    const list = sameType(c), j = list.indexOf(c) + Number(e.target.closest('[data-cmove]').dataset.cmove);
+    if (!list[j]) return;
+    const a = cards.indexOf(c), b = cards.indexOf(list[j]);
+    [cards[a], cards[b]] = [cards[b], cards[a]];
+  } else if (e.target.closest('[data-cdel]')) {
+    if (!confirm(`Удалить карточку${c.name ? ` «${c.name}»` : ''}?`)) return;
+    cards.splice(cards.indexOf(c), 1);
+  } else return;
+  renderCatalog();
+  catChanged();
+});
+
+// ---------- разделы админки ----------
+let tab = 'calc';
+let rows = {}; // сохранённое: { calc, catalog } — { updated_at, updated_by }
+function showTab(name) {
+  tab = name;
+  $('#tabCalc').hidden = name !== 'calc';
+  $('#tabCatalog').hidden = name !== 'catalog';
+  $$('#admTabs [data-tab]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.tab === name));
+  $('#admT').textContent = name === 'calc' ? 'Настройки расчёта' : 'Оборудование';
+  history.replaceState(null, '', name === 'calc' ? location.pathname : '#equipment');
+  stamp();
+}
+$('#admTabs').addEventListener('click', (e) => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); });
+
 // ---------- загрузка и сохранение ----------
 
-function stamp(row) {
-  $('#stamp').textContent = row && row.updated_at ? `Изменено ${fmtDate(row.updated_at)}${row.updated_by ? ` · ${loginOf(row.updated_by)}` : ''}` : 'Ещё не сохранялось — показаны значения по умолчанию';
+function stamp() {
+  const row = rows[tab];
+  $('#stamp').textContent = row && row.updated_at ? `Изменено ${fmtDate(row.updated_at)}${row.updated_by ? ` · ${loginOf(row.updated_by)}` : ''}`
+    : tab === 'calc' ? 'Ещё не сохранялось — показаны значения по умолчанию' : 'Ещё не сохранялось — карточки собраны из цен расчёта';
 }
 
 async function openEditor() {
@@ -498,41 +644,72 @@ async function openEditor() {
   $('#bar').hidden = false;
   $('#who').textContent = `Вход: ${loginOf(session.email)}`;
   msg('');
-  let row = null;
+  rows = {};
   try {
-    const r = await api(`site_settings?key=eq.${SETTINGS_KEY}&select=value,updated_at,updated_by`);
+    const r = await api(`site_settings?key=in.(${SETTINGS_KEY},${CATALOG_KEY})&select=key,value,updated_at,updated_by`);
     if (r.status === 401) return logout('Сессия истекла — войдите снова');
     if (!r.ok) throw new Error(r.status);
-    row = (await r.json())[0] || null;
-    if (row) applySettings(row.value);
+    for (const row of await r.json()) {
+      if (row.key === SETTINGS_KEY && applySettings(row.value)) rows.calc = row;
+      if (row.key === CATALOG_KEY && applyCatalog(row.value)) rows.catalog = row;
+    }
   } catch (_) {
     msg('Не получилось загрузить сохранённое — показаны значения по умолчанию. Выполнен ли site-settings.sql в Supabase?', 'bad');
   }
-  stamp(row);
   fill(calcSettings());
+  cards = JSON.parse(JSON.stringify(catalogCards())); // без сохранённого каталога — из цен расчёта, уже с настройками
+  renderCatalog();
   dirty = false;
+  catDirty = false;
+  showTab(location.hash === '#equipment' ? 'catalog' : 'calc');
 }
 
+// одна запись site_settings; false — сессия истекла (уже вышли)
+async function put(key, value, now) {
+  const r = await api('site_settings?on_conflict=key', {
+    method: 'POST',
+    headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ key, value, updated_at: now, updated_by: session.email }),
+  });
+  if (r.status === 401) { logout('Сессия истекла — войдите снова, изменения не сохранены'); return false; }
+  if (r.status === 403) throw new Error('Нет прав менять настройки сайта');
+  if (r.status === 404) throw new Error('В Supabase нет таблицы настроек — выполните site-settings.sql в SQL Editor и нажмите «Сохранить» ещё раз');
+  if (!r.ok) throw new Error('Не получилось сохранить, попробуйте ещё раз');
+  return true;
+}
+
+// сохраняем то, что менялось: расчёт, «Оборудование» или оба
 $('#save').addEventListener('click', async () => {
+  if (!dirty && !catDirty) return msg('Изменений нет');
+  const noName = catDirty && cards.find((c) => !c.name.trim());
+  if (noName) {
+    showTab('catalog');
+    $(`[data-cid="${noName.id}"] [data-c="name"]`).focus();
+    return msg('У карточки нет названия — впишите его или удалите карточку', 'bad');
+  }
   const btn = $('#save');
-  const value = collect();
+  const value = dirty && collect();
   btn.disabled = true;
   msg('Сохраняем…');
   try {
-    const now = new Date().toISOString();
-    const r = await api('site_settings?on_conflict=key', {
-      method: 'POST',
-      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify({ key: SETTINGS_KEY, value, updated_at: now, updated_by: session.email }),
-    });
-    if (r.status === 401) return logout('Сессия истекла — войдите снова, изменения не сохранены');
-    if (r.status === 403) throw new Error('Нет прав менять настройки сайта');
-    if (r.status === 404) throw new Error('В Supabase нет таблицы настроек — выполните site-settings.sql в SQL Editor и нажмите «Сохранить» ещё раз');
-    if (!r.ok) throw new Error('Не получилось сохранить, попробуйте ещё раз');
-    applySettings(value);
-    fill(calcSettings()); // показываем то, что реально применится (пустые строки, кривые числа — отброшены)
-    stamp({ updated_at: now, updated_by: session.email });
-    dirty = false;
+    const now = new Date().toISOString(), by = { updated_at: now, updated_by: session.email };
+    if (dirty) {
+      if (!await put(SETTINGS_KEY, value, now)) return;
+      applySettings(value);
+      fill(calcSettings()); // показываем то, что реально применится (пустые строки, кривые числа — отброшены)
+      rows.calc = by;
+      dirty = false;
+    }
+    if (catDirty) {
+      const cat = { cards: JSON.parse(JSON.stringify(cards)) };
+      if (!await put(CATALOG_KEY, cat, now)) return;
+      applyCatalog(cat);
+      cards = JSON.parse(JSON.stringify(CATALOG));
+      renderCatalog();
+      rows.catalog = by;
+      catDirty = false;
+    }
+    stamp();
     msg('Сохранено — на сайте уже новые значения', 'ok');
   } catch (err) {
     msg(err.message, 'bad');
