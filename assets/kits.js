@@ -23,7 +23,7 @@ function renderKits() {
   const tabs = document.querySelector('#kitTypes');
   tabs.setAttribute('aria-label', t('Разделы комплектов'));
   tabs.innerHTML = types.map((ty) => `<button type="button" class="eq__type" data-type="${ty.id}" aria-pressed="${ty.id === kitCur}">`
-    + `${ty.ic ? `<img src="assets/icons/${ty.ic}.webp" alt="">` : ''}<span>${t(ty.t)}</span><i>${kitsOf(ty.id).length}</i></button>`).join('');
+    + `${ty.ic ? `<img src="assets/icons/${ty.ic}.webp" alt="">` : `<b class="eq__all" aria-hidden="true">${t(ty.t)}</b>`}<span>${t(ty.t)}</span><i>${kitsOf(ty.id).length}</i></button>`).join('');
   document.querySelector('#kitsList').innerHTML = kitsOf(kitCur).map((k) => {
     const e = estimate(kitState(k));
     const main = e.eq.filter((l) => !l.parts); // «Доп. материалы» — строкой «Кабель, гофра, коннекторы» ниже

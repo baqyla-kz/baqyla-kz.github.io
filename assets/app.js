@@ -461,7 +461,8 @@ function partsHtml(l, pic) {
 
 // у строк на всех шагах — иконки в белом круге (нет иконки — пустой круг, картинку загрузим позже)
 function lineHtml(l, per) {
-  const pic = `<span class="ln__ic">${l.ic ? `<img src="assets/icons/${l.ic}.webp" alt="">` : l.addon ? addIcon(l.addon) : ''}</span>`;
+  // ×2 на иконке — для плиток на телефоне (там строка «2 шт × …» скрыта)
+  const pic = `<span class="ln__ic">${l.ic ? `<img src="assets/icons/${l.ic}.webp" alt="">` : l.addon ? addIcon(l.addon) : ''}${l.qty > 1 ? `<span class="ln__n">×${qtyFmt(l.qty)}</span>` : ''}</span>`;
   if (l.parts) return partsHtml(l, pic);
   const qty = l.qty === undefined ? '' : `<span class="ln__qty">${l.qty} ${l.unit}${l.price && l.qty > 1 ? ` × ${fmt(l.price)}` : ''}</span>`;
   if (l.price === undefined) return `<div class="ln ln--ic${qty ? '' : ' ln--one'}">${pic}<span class="ln__name">${l.name}</span>${qty}</div>`; // состав без цены (шаг «Камеры»)
@@ -476,7 +477,19 @@ function syncStore() {
   state.store = null;
 }
 
-$('#lines').addEventListener('toggle', (e) => { if (e.target.matches('.ln-d')) partsOpen = e.target.open; }, true);
+// телефон: смета плитками по две в ряд. Подзаголовок и раскрытые «Доп. материалы» — на всю ширину;
+// если плиток между ними нечётное число, последняя — тоже на всю ширину, строкой (иначе рядом пустое место)
+function markWide() {
+  let run = [];
+  const flush = () => { if (run.length % 2) run[run.length - 1].classList.add('ln--wide'); run = []; };
+  for (const el of $('#lines').children) {
+    el.classList.remove('ln--wide');
+    if (el.matches('.ln, .ln-d:not([open])')) run.push(el); else flush();
+  }
+  flush();
+}
+
+$('#lines').addEventListener('toggle', (e) => { if (e.target.matches('.ln-d')) { partsOpen = e.target.open; markWide(); } }, true);
 
 function renderSmeta() {
   syncStore();
@@ -494,13 +507,14 @@ function renderSmeta() {
       ? `<p class="smeta__empty">${t('Камер пока нет — добавьте их на шаге «Камеры».')}</p>`
       : [...e.eq, ...e.work].map((l) => lineHtml(l)).join('')
         + (e.extra.length ? `<div class="smeta__sub">${t('Дополнительно')}</div>${e.extra.map((l) => lineHtml(l)).join('')}` : '');
+  markWide();
   from = n && (per || e.draft) ? `${t('от')} ` : ''; // есть позиции без цены — итог «от»
   // нижняя панель: пока камер не выбрали — не «Итого от 15 000 ₸», а прямо «Установка 1 камеры · 15 000 ₸»
   mFrom = per ? '' : from;
   $('#mLabel').textContent = t(per ? 'Установка 1 камеры' : 'Итого');
   $('#from').hidden = !from;
   $('#from').textContent = t('от');
-  $('#totalT').textContent = t(from ? 'Итого' : 'Итого под ключ');
+  $('#totalT').textContent = t('Итог');
   $('#note').hidden = !last; // «Цена примерная.» — только на шаге «Схема»
   animateTotal(!n ? 0 : per ? inst.price : e.total);
 
