@@ -137,10 +137,13 @@ const OBJECTS = [
   { plan: 'business', icon: 'office', t: 'Коммерческий объект', d: 'Магазин, офис, кафе, склад' },
 ];
 
+// комплекты по умолчанию — пока в админке (вкладка «Комплекты») ничего не сохраняли; on — заготовленные места камер (slots).
+// Старые ссылки ?kit=N из расчёта ведут сюда же, по номеру.
 const KITS = [
   { name: 'Дом', plan: 'home', on: [0, 1, 2, 3], store: '2x1', text: 'Четыре уличные камеры по углам дома' },
   { name: 'Дом+', plan: 'home', on: [0, 1, 2, 3, 4, 5], store: '4x1', text: 'Шесть камер: углы дома, въезд и задний двор' },
   { name: 'Бизнес', plan: 'business', on: [0, 1, 2, 3, 4, 5, 6, 7], store: '4x1', text: 'Улица и торговый зал: восемь камер' },
+  { name: 'Двор и подъезд', plan: 'flats', on: [0, 1, 2, 3, 6, 7], store: '4x1', text: 'Входы, парковка и холлы подъездов' }, // в конце — номера ?kit=N у старых ссылок не сдвигаются
 ];
 
 // Блок «Дополнительно» под схемой: что клиент может добавить к системе.
@@ -497,14 +500,62 @@ function catalogDefaults() {
 
 const catalogCards = () => CATALOG || catalogDefaults();
 
+// ---------- комплекты (страница «Комплекты») ----------
+// Правятся в админке (вкладка «Комплекты») → site_settings, ключ KITS_KEY: { kits: [комплект, …] }.
+// Комплект: { id, plan (раздел — ключ PLANS), name, nameKk, text, textKk, out, in (камер снаружи и внутри), store (запись: '2x1', 'sd' …),
+//   price? (своя цена «под ключ»; нет — по смете), pic? (своё фото; нет — фото объекта с шага 2), hidden }.
+// Состав и цена считаются тем же расчётом, что на странице «Расчёт» (estimate). Ещё не сохраняли — из KITS выше (kitsDefaults).
+const KITS_KEY = 'kits';
+const KITS_MAX = 30;
+let KITS_SAVED = null; // null — из админки ещё не сохраняли
+
+function applyKits(v) {
+  if (!v || !Array.isArray(v.kits)) return false;
+  const ids = new Set(), cams = (x) => (Number.isInteger(x) && x >= 0 && x <= PRICE.maxPerZone ? x : 0);
+  KITS_SAVED = v.kits.slice(0, KITS_MAX).filter((k) => k && PLANS[k.plan] && cleanStr(k.name)).map((k, i) => {
+    let id = typeof k.id === 'string' && /^[\w-]{1,40}$/.test(k.id) ? k.id : `k${i}`;
+    if (ids.has(id)) id = `${id}-${i}`;
+    ids.add(id);
+    const o = {
+      id, plan: k.plan,
+      name: cleanStr(k.name), nameKk: cleanStr(k.nameKk, ''),
+      text: cleanStr(k.text, '', 120), textKk: cleanStr(k.textKk, '', 120),
+      out: cams(k.out), in: cams(k.in),
+      store: typeof k.store === 'string' && /^(sd|\d+x\d+)$/.test(k.store) ? k.store : '',
+      hidden: k.hidden === true,
+    };
+    const p = cleanNum(k.price);
+    if (p !== undefined) o.price = p;
+    if (picOk(k.pic)) o.pic = k.pic;
+    return o;
+  }).filter((k) => k.out + k.in > 0);
+  return true;
+}
+
+function kitsDefaults() {
+  return KITS.map((k, i) => {
+    const c = counts({ plan: k.plan, on: { [k.plan]: new Set(k.on) }, extraOut: 0, extraIn: 0 });
+    return { id: `kit-${i}`, plan: k.plan, name: k.name, nameKk: inLang('kk', () => t(k.name)), text: k.text, textKk: inLang('kk', () => t(k.text)),
+      out: c.out, in: c.inn, store: k.store, hidden: false };
+  });
+}
+
+const kitList = () => KITS_SAVED || kitsDefaults();
+// комплект → состояние расчёта: камеры — счётчиками шага 2 (без заготовленных мест), запись — выбранная
+const kitState = (k) => ({ plan: k.plan, on: { [k.plan]: new Set() }, extraOut: k.out, extraIn: k.in, extraLift: 0, store: k.store, cable: PLANS[k.plan].cable });
+// «Открыть в расчёте» — та же ссылка, что у «Поделиться»: сразу на схему с этими камерами и записью
+const kitHref = (k) => `index.html?${new URLSearchParams({ obj: k.plan, out: k.out, in: k.in, rec: k.store })}`;
+
 // настройки из админки (admin.html → Supabase site_settings): сначала последние известные из браузера — без мигания цен,
 // потом свежие с сервера → fresh() (перерисовать страницу); не получилось — остаются значения по умолчанию.
-// withCatalog — ещё и карточки «Оборудования»
+// withCatalog — ещё и карточки «Оборудования», withKits — комплекты
 const SETTINGS_CACHE = 'baqyla-settings-v1';
 const CATALOG_CACHE = 'baqyla-catalog-v1';
-function loadSettings(fresh, withCatalog) {
+const KITS_CACHE = 'baqyla-kits-v1';
+function loadSettings(fresh, withCatalog, withKits) {
   const parts = [[SETTINGS_KEY, SETTINGS_CACHE, applySettings]];
   if (withCatalog) parts.push([CATALOG_KEY, CATALOG_CACHE, applyCatalog]);
+  if (withKits) parts.push([KITS_KEY, KITS_CACHE, applyKits]);
   for (const [, cache, apply] of parts) {
     try { apply(JSON.parse(localStorage.getItem(cache))); } catch (_) { /* нет кэша */ }
   }

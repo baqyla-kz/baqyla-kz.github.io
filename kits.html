@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Комплекты — Baqyla</title>
-  <meta name="description" content="Готовые комплекты видеонаблюдения Baqyla: дом, дом+, бизнес. Цена под ключ с монтажом.">
+  <meta name="description" content="Готовые комплекты видеонаблюдения Baqyla: для частного дома, многоквартирного дома и бизнеса. Цена под ключ с монтажом.">
   <link rel="canonical" href="https://baqyla-kz.github.io/kits.html">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Baqyla">
   <meta property="og:locale" content="ru_RU">
   <meta property="og:url" content="https://baqyla-kz.github.io/kits.html">
   <meta property="og:title" content="Комплекты — Baqyla">
-  <meta property="og:description" content="Готовые комплекты видеонаблюдения: дом, дом+, бизнес.">
+  <meta property="og:description" content="Готовые комплекты видеонаблюдения: для частного дома, многоквартирного дома и бизнеса.">
   <meta property="og:image" content="https://baqyla-kz.github.io/assets/og.jpg">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#FFFFFF">
@@ -43,10 +43,10 @@
     <section class="hero wide">
       <h1>Готовые комплекты</h1>
     </section>
-    <!-- комплекты пока не продаём: карточки размыты, поверх «Скоро» -->
-    <section class="wide soon">
-      <div class="kits" id="kitsList" aria-hidden="true" inert></div>
-      <p class="soon__badge">Скоро</p>
+    <!-- как «Оборудование»: на компьютере разделы слева, карточки справа; на телефоне разделы вкладками сверху (kits.js) -->
+    <section class="wide eq eq--kits">
+      <div class="eq__types" id="kitTypes" role="group"></div>
+      <div class="kits" id="kitsList"></div>
     </section>
   </main>
 
@@ -59,8 +59,11 @@
     </div>
   </section>
 
+  <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }</script>
   <script src="assets/i18n.js"></script>
   <script src="assets/data.js"></script>
+  <script src="assets/scenes.js"></script>
   <script src="assets/kits.js"></script>
+  <script type="module" src="assets/scheme3d.js"></script>
 </body>
 </html>

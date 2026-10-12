@@ -1,5 +1,6 @@
 // Админка (admin.html): настройки расчёта → Supabase, таблица site_settings, ключ SETTINGS_KEY (data.js);
-// вкладка «Оборудование» — карточки страницы equipment.html, ключ CATALOG_KEY (data.js: applyCatalog, catalogDefaults).
+// вкладка «Оборудование» — карточки страницы equipment.html, ключ CATALOG_KEY (data.js: applyCatalog, catalogDefaults);
+// вкладка «Комплекты» — комплекты страницы kits.html, ключ KITS_KEY (data.js: applyKits, kitsDefaults).
 // Вход — логин и пароль CRM (Supabase Auth, «логин» → логин@team.baqyla.kz), код 2FA — если MFA = true; менять может только тот, у кого право на сайт (is_site_admin).
 // Значения по умолчанию и проверка — в data.js (HOME, FLATS, BIZ, PRICE.install, applySettings, calcSettings), сайт читает то же.
 
@@ -9,7 +10,7 @@ const LOGIN_DOMAIN = 'team.baqyla.kz';
 const SESSION = 'baqyla-admin-session-v2';
 // 2FA пока выключена: вход по логину и паролю. Включить — true здесь и is_site_admin() с aal2 в site-security.sql
 const MFA = false;
-let session = null, dirty = false, catDirty = false; // dirty — расчёт, catDirty — «Оборудование»
+let session = null, dirty = false, catDirty = false, kitsDirty = false; // dirty — расчёт, catDirty — «Оборудование», kitsDirty — «Комплекты»
 
 const fmtDate = (iso) => new Date(iso).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
 const loginOf = (email) => (email || '').replace(`@${LOGIN_DOMAIN}`, '');
@@ -328,7 +329,7 @@ $('#editor').addEventListener('click', (e) => {
   msg('Есть несохранённые изменения');
 });
 
-addEventListener('beforeunload', (e) => { if (dirty || catDirty) e.preventDefault(); });
+addEventListener('beforeunload', (e) => { if (dirty || catDirty || kitsDirty) e.preventDefault(); });
 
 
 // ---------- фото «Дополнительно» ----------
@@ -616,16 +617,183 @@ $('#tabCatalog').addEventListener('click', (e) => {
   catChanged();
 });
 
+// ---------- вкладка «Комплекты»: карточки страницы kits.html ----------
+// kits — рабочая копия; порядок в массиве = порядок на сайте внутри раздела. Состав и цена по смете — тем же расчётом, что на сайте.
+let kits = [];
+const KIT_PLANS = [['home', 'Частный дом'], ['flats', 'Многоквартирный дом'], ['business', 'Коммерческий объект']];
+const kitOf = (el) => kits.find((k) => k.id === el.closest('[data-kid]').dataset.kid);
+const samePlan = (k) => kits.filter((x) => x.plan === k.plan);
+
+// запись — из тех вариантов, что предлагает расчёт под это число камер; выбранной нет среди них — средняя
+const kitStores = (k) => (k.out + k.in ? storeOptions(kitState(k)) : []);
+function fixStore(k) {
+  const o = kitStores(k);
+  if (!o.some((x) => x.key === k.store)) k.store = o.length ? o[Math.min(1, o.length - 1)].key : '';
+}
+const storeOpts = (k) => {
+  const n = k.out + k.in;
+  return kitStores(k).map((o) => `<option value="${o.key}"${o.key === k.store ? ' selected' : ''}>${storeLabel(o)} — ${daysRange(storeDays(o, n)).text}</option>`).join('')
+    || '<option value="">— сначала камеры</option>';
+};
+
+// состав и цена по смете — как увидит клиент
+function kitSum(k) {
+  const e = estimate(kitState(k));
+  if (!e.c.total) return '<b>Нет камер</b> — добавьте хотя бы одну, иначе комплект не сохранится';
+  const work = e.work.reduce((a, l) => a + l.sum, 0);
+  return `Состав: ${esc(e.eq.filter((l) => !l.parts).map((l) => `${l.name} × ${l.qty}`).join(', '))}, кабель и материалы, монтаж ${fmt(work)}.<br>`
+    + `<b>По смете: ${e.draft ? 'от ' : ''}${fmt(e.total)}</b>${hasPrice(k.price) ? ` · на сайте — своя цена <b>${fmt(k.price)}</b>` : ''}`;
+}
+
+const camsField = (f, label, v) => `<label class="f"><span>${label}</span><input class="in in--num" type="number" min="0" max="${PRICE.maxPerZone}" step="1" inputmode="numeric" data-kf="${f}" value="${v}"></label>`;
+
+function kitEditor(k) {
+  const list = samePlan(k), i = list.indexOf(k), z = PLANS[k.plan].zones.out;
+  return `<div class="ce${k.hidden ? ' is-hidden' : ''}" data-kid="${k.id}">
+    <div class="ce__pic">
+      <span class="ce__ph ce__ph--kit"><img src="${k.pic ? picUrl(k.pic) : `assets/photos/${z.photo}.webp`}" alt=""></span>
+      <label class="btn btn--ghost">${k.pic ? 'Заменить фото' : 'Своё фото'}<input type="file" accept="image/*" data-kfile></label>
+      ${k.pic ? '<button type="button" class="btn btn--ghost" data-kpic-reset>Фото объекта</button>' : ''}
+    </div>
+    <div class="ce__f">
+      <div class="ce__row">
+        <label class="f"><span>Название</span><input class="in" data-kf="name" maxlength="80" value="${esc(k.name)}"></label>
+        <label class="f"><span>Название по-казахски</span><input class="in" data-kf="nameKk" maxlength="80" value="${esc(k.nameKk)}" placeholder="пусто — по словарю или по-русски"></label>
+        <label class="f"><span>Подпись — что входит, одной строкой</span><input class="in" data-kf="text" maxlength="120" value="${esc(k.text)}"></label>
+        <label class="f"><span>Подпись по-казахски</span><input class="in" data-kf="textKk" maxlength="120" value="${esc(k.textKk)}"></label>
+      </div>
+      <div class="ce__row ce__row--3">
+        ${camsField('out', `Камер снаружи (${PLANS[k.plan].zones.out.t.toLowerCase()})`, k.out)}
+        ${camsField('in', `Камер внутри (${PLANS[k.plan].zones.in.t.toLowerCase()})`, k.in)}
+        <label class="f"><span>Запись</span><select class="in" data-kf="store">${storeOpts(k)}</select></label>
+      </div>
+      <div class="ce__row ce__row--3">
+        <label class="f"><span>Цена под ключ</span><span class="money"><input class="in in--num" type="number" min="0" step="1" inputmode="numeric" placeholder="по смете" data-kf="price" value="${hasPrice(k.price) ? k.price : ''}"></span></label>
+        <label class="f ke__plan"><span>Раздел</span><select class="in" data-kf="plan">${KIT_PLANS.map(([v, l]) => `<option value="${v}"${v === k.plan ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+      </div>
+      <p class="ke__sum" data-ksum>${kitSum(k)}</p>
+      <div class="ce__acts">
+        <label class="ce__chk"><input type="checkbox" data-kf="hidden"${k.hidden ? ' checked' : ''}> Скрыть на сайте</label>
+        <span class="ce__mv"><button type="button" data-kmove="-1" aria-label="Выше"${i ? '' : ' disabled'}>↑</button><button type="button" data-kmove="1" aria-label="Ниже"${i < list.length - 1 ? '' : ' disabled'}>↓</button></span>
+        <button type="button" class="ce__del" data-kdel>Удалить</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderKitsAdm() {
+  $('#kitNote').textContent = KITS_SAVED
+    ? 'Комплекты по разделам — в том же порядке, что на сайте. Состав и цена считаются по ценам расчёта; «Цена под ключ» — если хотите показать свою. Новое фото сразу загружается, на сайт попадёт после «Сохранить».'
+    : 'Комплекты ещё не сохраняли — показаны те, что на сайте сейчас. После «Сохранить» на сайте будут комплекты отсюда.';
+  $('#kitBox').innerHTML = KIT_PLANS.map(([plan, title]) => {
+    const list = kits.filter((k) => k.plan === plan);
+    return `<section class="card"><h2>${title}<span class="ce__n">${list.length}</span></h2>
+      <div class="ce-list">${list.map(kitEditor).join('')}</div>
+      <button type="button" class="mt__add" data-kadd="${plan}"${kits.length >= KITS_MAX ? ' disabled' : ''}>+ Добавить комплект</button></section>`;
+  }).join('');
+}
+
+function kitsChanged() { kitsDirty = true; msg('Есть несохранённые изменения'); }
+function kitRefresh(box, k) { // после смены камер или цены — запись и состав, не трогая поле в фокусе
+  $('[data-kf="store"]', box).innerHTML = storeOpts(k);
+  $('[data-ksum]', box).innerHTML = kitSum(k);
+}
+
+$('#tabKits').addEventListener('input', (e) => {
+  e.stopPropagation(); // не путать с полями расчёта
+  const f = e.target.dataset.kf;
+  if (!f || e.target.type === 'checkbox' || e.target.tagName === 'SELECT') return;
+  const box = e.target.closest('.ce'), k = kitOf(box);
+  if (f === 'out' || f === 'in') {
+    const n = numOf(e.target);
+    k[f] = Math.min(PRICE.maxPerZone, Math.round(n || 0));
+    fixStore(k);
+    kitRefresh(box, k);
+  } else if (f === 'price') {
+    const p = numOf(e.target);
+    if (p === undefined) delete k.price; else k.price = Math.round(p);
+    kitRefresh(box, k);
+  } else k[f] = e.target.value;
+  kitsChanged();
+});
+$('#tabKits').addEventListener('change', async (e) => {
+  e.stopPropagation();
+  const f = e.target.dataset.kf;
+  if (f && (e.target.type === 'checkbox' || e.target.tagName === 'SELECT')) {
+    const box = e.target.closest('.ce'), k = kitOf(box);
+    if (f === 'hidden') { k.hidden = e.target.checked; box.classList.toggle('is-hidden', k.hidden); }
+    if (f === 'store') { k.store = e.target.value; $('[data-ksum]', box).innerHTML = kitSum(k); }
+    if (f === 'plan') { // переехал в другой раздел — в конец его списка
+      k.plan = e.target.value;
+      kits.splice(kits.indexOf(k), 1);
+      kits.push(k);
+      fixStore(k);
+      renderKitsAdm();
+      $(`[data-kid="${k.id}"]`).scrollIntoView({ block: 'center' });
+    }
+    kitsChanged();
+    return;
+  }
+  if (!e.target.matches('[data-kfile]')) return;
+  const file = e.target.files[0], box = e.target.closest('.ce'), k = kitOf(box);
+  if (!file) return;
+  if (!file.type.startsWith('image/')) return msg('Это не картинка', 'bad');
+  box.classList.add('ce__busy');
+  msg('Загружаем фото…');
+  try {
+    const url = await uploadImg(file, `kits/${k.id}-${Date.now()}.webp`);
+    if (!url) return;
+    k.pic = url;
+    renderKitsAdm();
+    kitsDirty = true;
+    msg('Фото загружено — нажмите «Сохранить», чтобы оно появилось на сайте');
+  } catch (err) {
+    msg(err.message === 'webp' ? 'Не получилось обработать картинку' : err.message, 'bad');
+    box.classList.remove('ce__busy');
+  }
+});
+$('#tabKits').addEventListener('click', (e) => {
+  e.stopPropagation(); // «+ Добавить» — не материалы расчёта
+  const add = e.target.closest('[data-kadd]');
+  if (add) {
+    const k = { id: `k${Date.now().toString(36)}`, plan: add.dataset.kadd, name: '', nameKk: '', text: '', textKk: '', out: 4, in: 0, store: '', hidden: false };
+    fixStore(k);
+    kits.push(k);
+    renderKitsAdm();
+    $(`[data-kid="${k.id}"] [data-kf="name"]`).focus();
+    return kitsChanged();
+  }
+  if (!e.target.closest('[data-kid]')) return;
+  const k = kitOf(e.target);
+  if (e.target.closest('[data-kpic-reset]')) {
+    delete k.pic;
+  } else if (e.target.closest('[data-kmove]')) {
+    const list = samePlan(k), j = list.indexOf(k) + Number(e.target.closest('[data-kmove]').dataset.kmove);
+    if (!list[j]) return;
+    const a = kits.indexOf(k), b = kits.indexOf(list[j]);
+    [kits[a], kits[b]] = [kits[b], kits[a]];
+  } else if (e.target.closest('[data-kdel]')) {
+    if (!confirm(`Удалить комплект${k.name ? ` «${k.name}»` : ''}?`)) return;
+    kits.splice(kits.indexOf(k), 1);
+  } else return;
+  renderKitsAdm();
+  kitsChanged();
+});
+
 // ---------- разделы админки ----------
 let tab = 'calc';
-let rows = {}; // сохранённое: { calc, catalog } — { updated_at, updated_by }
+let rows = {}; // сохранённое: { calc, catalog, kits } — { updated_at, updated_by }
+const TABS = { // вкладка → блок, заголовок, адрес
+  calc: { box: '#tabCalc', title: 'Настройки расчёта', hash: '' },
+  catalog: { box: '#tabCatalog', title: 'Оборудование', hash: '#equipment' },
+  kits: { box: '#tabKits', title: 'Комплекты', hash: '#kits' },
+};
 function showTab(name) {
   tab = name;
-  $('#tabCalc').hidden = name !== 'calc';
-  $('#tabCatalog').hidden = name !== 'catalog';
+  for (const [k, v] of Object.entries(TABS)) $(v.box).hidden = k !== name;
   $$('#admTabs [data-tab]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.tab === name));
-  $('#admT').textContent = name === 'calc' ? 'Настройки расчёта' : 'Оборудование';
-  history.replaceState(null, '', name === 'calc' ? location.pathname : '#equipment');
+  $('#admT').textContent = TABS[name].title;
+  history.replaceState(null, '', TABS[name].hash || location.pathname);
   stamp();
 }
 $('#admTabs').addEventListener('click', (e) => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); });
@@ -635,7 +803,7 @@ $('#admTabs').addEventListener('click', (e) => { const b = e.target.closest('[da
 function stamp() {
   const row = rows[tab];
   $('#stamp').textContent = row && row.updated_at ? `Изменено ${fmtDate(row.updated_at)}${row.updated_by ? ` · ${loginOf(row.updated_by)}` : ''}`
-    : tab === 'calc' ? 'Ещё не сохранялось — показаны значения по умолчанию' : 'Ещё не сохранялось — карточки собраны из цен расчёта';
+    : { calc: 'Ещё не сохранялось — показаны значения по умолчанию', catalog: 'Ещё не сохранялось — карточки собраны из цен расчёта', kits: 'Ещё не сохранялось — показаны комплекты по умолчанию' }[tab];
 }
 
 async function openEditor() {
@@ -646,12 +814,13 @@ async function openEditor() {
   msg('');
   rows = {};
   try {
-    const r = await api(`site_settings?key=in.(${SETTINGS_KEY},${CATALOG_KEY})&select=key,value,updated_at,updated_by`);
+    const r = await api(`site_settings?key=in.(${SETTINGS_KEY},${CATALOG_KEY},${KITS_KEY})&select=key,value,updated_at,updated_by`);
     if (r.status === 401) return logout('Сессия истекла — войдите снова');
     if (!r.ok) throw new Error(r.status);
     for (const row of await r.json()) {
       if (row.key === SETTINGS_KEY && applySettings(row.value)) rows.calc = row;
       if (row.key === CATALOG_KEY && applyCatalog(row.value)) rows.catalog = row;
+      if (row.key === KITS_KEY && applyKits(row.value)) rows.kits = row;
     }
   } catch (_) {
     msg('Не получилось загрузить сохранённое — показаны значения по умолчанию. Выполнен ли site-settings.sql в Supabase?', 'bad');
@@ -659,9 +828,12 @@ async function openEditor() {
   fill(calcSettings());
   cards = JSON.parse(JSON.stringify(catalogCards())); // без сохранённого каталога — из цен расчёта, уже с настройками
   renderCatalog();
+  kits = JSON.parse(JSON.stringify(kitList())); // без сохранённых — комплекты по умолчанию (data.js: KITS)
+  renderKitsAdm();
   dirty = false;
   catDirty = false;
-  showTab(location.hash === '#equipment' ? 'catalog' : 'calc');
+  kitsDirty = false;
+  showTab(Object.keys(TABS).find((k) => TABS[k].hash && TABS[k].hash === location.hash) || 'calc');
 }
 
 // одна запись site_settings; false — сессия истекла (уже вышли)
@@ -680,12 +852,18 @@ async function put(key, value, now) {
 
 // сохраняем то, что менялось: расчёт, «Оборудование» или оба
 $('#save').addEventListener('click', async () => {
-  if (!dirty && !catDirty) return msg('Изменений нет');
+  if (!dirty && !catDirty && !kitsDirty) return msg('Изменений нет');
   const noName = catDirty && cards.find((c) => !c.name.trim());
   if (noName) {
     showTab('catalog');
     $(`[data-cid="${noName.id}"] [data-c="name"]`).focus();
     return msg('У карточки нет названия — впишите его или удалите карточку', 'bad');
+  }
+  const badKit = kitsDirty && kits.find((k) => !k.name.trim() || !(k.out + k.in));
+  if (badKit) {
+    showTab('kits');
+    $(`[data-kid="${badKit.id}"] [data-kf="${badKit.name.trim() ? 'out' : 'name'}"]`).focus();
+    return msg(badKit.name.trim() ? 'В комплекте нет камер — добавьте камеры или удалите комплект' : 'У комплекта нет названия — впишите его или удалите комплект', 'bad');
   }
   const btn = $('#save');
   const value = dirty && collect();
@@ -708,6 +886,15 @@ $('#save').addEventListener('click', async () => {
       renderCatalog();
       rows.catalog = by;
       catDirty = false;
+    }
+    if (kitsDirty) {
+      const v = { kits: JSON.parse(JSON.stringify(kits)) };
+      if (!await put(KITS_KEY, v, now)) return;
+      applyKits(v);
+      kits = JSON.parse(JSON.stringify(KITS_SAVED));
+      renderKitsAdm();
+      rows.kits = by;
+      kitsDirty = false;
     }
     stamp();
     msg('Сохранено — на сайте уже новые значения', 'ok');
