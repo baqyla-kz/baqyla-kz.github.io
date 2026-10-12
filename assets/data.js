@@ -469,7 +469,9 @@ function catalogDefaults() {
     const P = HOME, out = [];
     const add = (type, id, o) => hasPrice(o.price) && out.push({ id, type, ...o });
     add('cam', 'cam-wifi', { name: t(P.camWifi.name), spec: L('Wi‑Fi, запись на карту в камере', 'Wi‑Fi, камерадағы картаға жазады'), price: P.camWifi.price, pic: 'products/ezviz-h3c',
-      url: 'https://kaspi.kz/shop/p/ezviz-kamera-videonabljudenija-h3c-2k-3mp-rasshirenie-2304x1296-173026430/?c=750000000' });
+      url: 'https://kaspi.kz/shop/p/ezviz-kamera-videonabljudenija-h3c-2k-3mp-rasshirenie-2304x1296-173026430/?c=750000000',
+      params: [L('Подключение по Wi‑Fi', 'Wi‑Fi арқылы қосылады'), L('Разрешение: 3\u00a0Мп', 'Ажыратымдылығы: 3\u00a0Мп'),
+        L('Ночная съёмка: ИК‑подсветка до 30\u00a0м', 'Түнде түсіреді: ИҚ жарығы 30\u00a0м-ге дейін')] });
     // Hikvision Dual Light (LIU): одно фото на все, цена «от» — Kaspi + 10% запаса
     for (const [mp, model, price, ir] of [[2, 'DS-2CD1023G2-LIU', 23810, 30], [4, 'DS-2CD1043G2-LIU', 35130, 30], [6, 'DS-2CD1063G2-LIU', 41158, 40], [8, 'DS-2CD1083G2-LIU', 49292, 30]]) {
       add('cam', `hik-${mp}mp`, { name: L(`Камера Hikvision ${mp}\u00a0Мп`, `Hikvision ${mp}\u00a0Мп камерасы`), spec: model, price, from: true, pic: 'products/hikvision-liu',
