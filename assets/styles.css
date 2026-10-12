@@ -91,11 +91,17 @@ button { font: inherit; color: inherit; }
 }
 /* три раздела, город и флаг в одну строку не влезают — разделы второй строкой, на всю ширину */
 @media (max-width: 720px) {
-  .top__in { flex-wrap: wrap; height: auto; row-gap: 0; padding-top: 10px; padding-bottom: 10px; }
-  .nav { order: 1; flex: 1 0 100%; margin-top: 10px; }
-  /* на телефоне иконка над подписью — как нижнее меню приложений */
-  .nav a { flex: 1; flex-direction: column; gap: 3px; padding: 7px 2px 6px; font-size: 12px; }
-  .nav svg { width: 20px; height: 20px; }
+  :root { --tabs: 67px; } /* высота нижней полосы разделов (без безопасной зоны iPhone) */
+  .top__in { height: 60px; }
+  /* разделы — полосой внизу экрана, как меню приложения: белая полоса, внутри серая дорожка (::after), иконка над подписью.
+     Полоса и дорожка — псевдоэлементы под ссылками: у fixed-блока свой слой, фон самого .nav лёг бы под них */
+  .nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; margin: 0; padding: 10px calc(var(--gut) + 4px) calc(12px + env(safe-area-inset-bottom)); background: none; border-radius: 0; }
+  .nav::before { content: ''; position: absolute; inset: 0; z-index: -1; background: #fff; border-top: 1px solid var(--line); }
+  .nav::after { content: ''; position: absolute; z-index: -1; left: var(--gut); right: var(--gut); top: 6px; bottom: calc(8px + env(safe-area-inset-bottom)); border-radius: 12px; background: var(--panel-2); }
+  .nav a { flex: 1; flex-direction: column; gap: 2px; padding: 5px 2px 4px; font-size: 11.5px; line-height: 15px; }
+  .nav svg { width: 19px; height: 19px; }
+  body { padding-bottom: calc(var(--tabs) + env(safe-area-inset-bottom)); }
+  body.is-typing .nav { display: none; } /* пишут номер — полоса не висит над клавиатурой */
   /* на телефоне: слово BAQYLA рядом со знаком, язык — флаг и «Рус» / «Қаз» */
   .top .brand__word { display: inline; }
   .lang__btn { width: auto; padding: 0 12px 0 6px; }
@@ -705,7 +711,6 @@ h1 {
 .mbar small { display: block; font-size: 12px; color: var(--muted); }
 .mbar strong { font: 700 20px var(--f-display); font-variant-numeric: tabular-nums; }
 @media (min-width: 1000px) { .mbar { display: none; } }
-.mbar__back, .mbar__next { display: none; } /* только на телефоне */
 
 .toast {
   position: fixed; left: 50%; bottom: 84px; z-index: 40;
@@ -740,29 +745,28 @@ main:has(+ .contacts) { min-height: calc(100vh - 65px); min-height: calc(100svh 
   .txt-lg { display: none; }
   .txt-sh { display: inline; }
   /* шапка уезжает при прокрутке вниз (app.js) */
-  .top { transition: transform .25s ease; }
-  .top.is-away { transform: translateY(-100%); }
+  /* через top, а не transform: transform сделал бы шапку опорой для fixed-полосы разделов, и та уехала бы вместе с ней */
+  .top { transition: top .25s ease; }
+  .top.is-away { top: -61px; }
   /* заголовок «Расчёт стоимости» повторяет вкладку «Расчёт» — на экране не показываем, для поиска и чтения с экрана оставляем */
   .hero--calc { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .hero--calc + .calc { padding-top: 16px; }
 
-  /* «Назад / Дальше» — в нижней панели; на шаге «Схема» смета и «Отправить» сразу под схемой, «Дополнительно» — последним */
-  .wiz__nav { display: none; }
+  /* «Назад / Дальше» — в карточке, сразу под вариантами; на шаге «Схема» смета первой, «Дополнительно» — последним */
+  .wiz__nav { margin-top: 18px; }
   .calc__main { display: contents; }
   .adds { order: 2; }
   .calc.is-last .smeta { order: -1; } /* шаг «Схема»: смета, схема, «Дополнительно» */
   /* шаги 1–4 наверху сметы (app.js: placeStepsBar); смета — тот же контейнер wiz, чтобы шаги сжимались так же */
   .smeta { container: wiz / inline-size; }
   .smeta > .steps-bar { margin-bottom: 20px; }
-  body:has(.mbar) { padding-bottom: 76px; }
-  .mbar { gap: 10px; }
+  body:has(.mbar) { padding-bottom: calc(var(--tabs) + 76px + env(safe-area-inset-bottom)); }
+  /* панель итога — над полосой разделов */
+  .mbar { bottom: calc(var(--tabs) + env(safe-area-inset-bottom)); gap: 10px; padding-bottom: 10px; transform: translateY(calc(100% + var(--tabs) + env(safe-area-inset-bottom) + 2px)); }
+  .toast { bottom: calc(var(--tabs) + 84px + env(safe-area-inset-bottom)); }
   .mbar [hidden] { display: none; }
   .mbar__sum { flex: 1; min-width: 0; }
-  .mbar__back { display: grid; place-items: center; flex: none; width: 44px; height: 44px; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: #fff; color: var(--text); cursor: pointer; }
-  .mbar__back svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
   .mbar .btn { height: 48px; padding: 0 26px; font-size: 16px; }
-  .mbar__next { display: inline-flex; }
-  .mbar__next:disabled { opacity: .4; cursor: default; }
   .mbar strong { white-space: nowrap; } /* «248 810 ₸» — одной строкой */
 
   /* «Дополнительно» строками: фото, название, подпись, переключатель */

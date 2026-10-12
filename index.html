@@ -134,12 +134,10 @@
     </div>
   </section>
 
-  <!-- телефон: итог и главная кнопка шага всегда под пальцем; «Назад» — стрелкой слева -->
+  <!-- телефон: итог над полосой разделов; на шаге «Схема» — ещё «Отправить» -->
   <div class="mbar">
-    <button type="button" class="mbar__back" id="mBack" aria-label="Назад" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg></button>
-    <div class="mbar__sum"><small>Итого</small><strong id="mTotal">0 ₸</strong></div>
+    <div class="mbar__sum"><small id="mLabel">Итого</small><strong id="mTotal">0 ₸</strong></div>
     <a class="btn btn--primary btn--sm" id="mSend" href="#acts" hidden>Отправить</a>
-    <button type="button" class="btn btn--primary btn--sm mbar__next" id="mNext">Дальше</button>
   </div>
 
   <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }</script>

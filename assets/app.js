@@ -138,10 +138,6 @@ function renderStep(animate) {
   // телефон, шаг «Схема»: кнопка «Скрыть / Показать» схему
   $('#schTg').hidden = !last;
   syncSchTg();
-  // нижняя панель телефона повторяет кнопки шага
-  $('#mBack').hidden = state.step === 0;
-  $('#mNext').hidden = last;
-  $('#mNext').disabled = next.disabled;
   syncBar();
 
   if (animate) {
@@ -438,7 +434,7 @@ function canAdd(zone) {
 
 // ---------- смета ----------
 
-let shown = 0, raf = 0, from = '', smetaOpen = false; // smetaOpen — в смете есть сумма (иначе мобильную панель не показываем)
+let shown = 0, raf = 0, from = '', mFrom = '', smetaOpen = false; // smetaOpen — в смете есть сумма (иначе мобильную панель не показываем)
 function animateTotal(to) {
   cancelAnimationFrame(raf);
   const start = shown, t0 = performance.now(); // не from: from — приставка «от» для мобильной панели
@@ -446,7 +442,7 @@ function animateTotal(to) {
     const k = reduceMotion.matches ? 1 : Math.min(1, (t - t0) / 380);
     shown = start + (to - start) * (1 - Math.pow(1 - k, 3));
     $('#total').textContent = fmt(shown);
-    $('#mTotal').textContent = from + fmt(shown);
+    $('#mTotal').textContent = mFrom + fmt(shown);
     if (k < 1) raf = requestAnimationFrame(step);
   };
   raf = requestAnimationFrame(step);
@@ -499,6 +495,9 @@ function renderSmeta() {
       : [...e.eq, ...e.work].map((l) => lineHtml(l)).join('')
         + (e.extra.length ? `<div class="smeta__sub">${t('Дополнительно')}</div>${e.extra.map((l) => lineHtml(l)).join('')}` : '');
   from = n && (per || e.draft) ? `${t('от')} ` : ''; // есть позиции без цены — итог «от»
+  // нижняя панель: пока камер не выбрали — не «Итого от 15 000 ₸», а прямо «Установка 1 камеры · 15 000 ₸»
+  mFrom = per ? '' : from;
+  $('#mLabel').textContent = t(per ? 'Установка 1 камеры' : 'Итого');
   $('#from').hidden = !from;
   $('#from').textContent = t('от');
   $('#totalT').textContent = t(from ? 'Итого' : 'Итого под ключ');
@@ -733,17 +732,15 @@ let typing = false; // телефон: пишут номер в заявке —
 function syncBar() {
   const r = $('.smeta').getBoundingClientRect(), off = r.top > innerHeight || r.bottom < 0;
   if (!phone.matches) { mbar.classList.toggle('is-on', smetaOpen && window.scrollY > 200 && off); return; }
-  mbar.classList.toggle('is-on', !typing);
+  mbar.classList.toggle('is-on', !typing && state.step > 0); // шаг «Объект»: цена ещё неизвестна — панели итога нет (в смете — как было)
   const a = $('#acts').getBoundingClientRect(), actsOn = !$('#acts').hidden && a.top < innerHeight && a.bottom > 0;
   $('#mSend').hidden = !(state.step === STEPS.length - 1 && smetaOpen && !actsOn);
 }
-$('#lead').addEventListener('focusin', () => { typing = true; syncBar(); });
-$('#lead').addEventListener('focusout', () => { typing = false; syncBar(); });
+$('#lead').addEventListener('focusin', () => { typing = true; document.body.classList.add('is-typing'); syncBar(); });
+$('#lead').addEventListener('focusout', () => { typing = false; document.body.classList.remove('is-typing'); syncBar(); });
 addEventListener('scroll', syncBar, { passive: true });
 addEventListener('resize', syncBar);
 phone.addEventListener('change', () => { placeStepsBar(); syncBar(); });
-$('#mNext').addEventListener('click', () => $('#next').click());
-$('#mBack').addEventListener('click', () => go(state.step - 1));
 
 // телефон: шапка уезжает при прокрутке вниз и возвращается при прокрутке вверх
 const header = $('.top'); // не top: window.top занят
