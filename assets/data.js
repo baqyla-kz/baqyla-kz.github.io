@@ -65,7 +65,8 @@ const PLANS = {
     base: { out: [0, 1, 2, 3], in: [6, 7] },
     zones: {
       out: { t: 'Снаружи дома', d: 'Входы, двор, парковка', photo: 'flats-out', pos: [50, 31.3], zoom: 1 },
-      in: { t: 'Внутри подъезда', d: 'Холл, лифт, этажи', photo: 'flats-in', pos: [50, 100], zoom: 1 },
+      in: { t: 'Внутри подъезда', d: 'Холл, лестница, этажи', photo: 'flats-in', pos: [50, 100], zoom: 1 },
+      lift: { t: 'В лифте', d: 'Кабина лифта', photo: 'flats-lift', pos: [22, 55], zoom: 1.1 }, // своя схема «Лифт» (scenes.js)
     },
     draw: `
       <path class="p-fence" d="M540 420 H20 V20 H620 V420 H610"/>
@@ -192,7 +193,8 @@ function counts(s) {
   const plan = PLANS[s.plan];
   let out = s.extraOut, inn = s.extraIn;
   for (const i of s.on[s.plan]) plan.slots[i].t === 'out' ? out++ : inn++;
-  return { out, inn, total: out + inn };
+  const lift = plan.zones.lift ? s.extraLift || 0 : 0; // камеры в лифте — только у ЖК; в смете — как камеры внутри
+  return { out, inn, lift, total: out + inn + lift };
 }
 
 // ---------- носитель записи ----------

@@ -119,6 +119,7 @@ class Stage {
 
   build(spec, n, startNo, mode) {
     this.key = sceneKey(spec, n, startNo, mode);
+    if (spec.build) spec = { ...spec, ...spec.build(n) }; // сцена «Лифт» — по кабине на камеру
     this.group.clear();
     this.ov.innerHTML = '';
     this.marks = [];
@@ -290,14 +291,14 @@ class Stage {
   }
 }
 
-const stages = { out: null, in: null };
+const stages = { out: null, in: null, lift: null };
 // сцена пересобирается, если поменялись камеры, вид или язык подписей
 const sceneKey = (spec, n, startNo, mode) => [spec.title, n, startNo, mode, I18N.lang].join('|');
 const get = (k) => (stages[k] ||= new Stage());
 
 window.Scheme3D = {
   stage: get, // сцена по ключу — для черновиков (drafts/scheme-hint.html: камера, OrbitControls)
-  // spec — SCENES[plan].out / .in; одна и та же сцена не пересобирается при каждом рендере шага
+  // spec — SCENES[plan].out / .in / .lift; одна и та же сцена не пересобирается при каждом рендере шага
   draw(k, el, spec, n, startNo, mode) {
     const s = get(k);
     s.attach(el);

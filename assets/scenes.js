@@ -20,6 +20,7 @@ const ORDER_OUT = [CORNER.D, CORNER.C, CORNER.B, CORNER.A, ['front', 0.5], ['rig
 const ORDER_IN = [CORNER.A, CORNER.B, CORNER.D, CORNER.C, ['back', 0.5], ['left', 0.5], ['right', 0.5], ['front', 0.5], ...quarters(['back', 'left', 'right', 'front'])];
 
 function placeCams(spec, n) {
+  if (spec.fixed) return spec.fixed.slice(0, n); // места заданы сценой (кабины лифта)
   const r = spec.rect;
   const order = spec.order || (spec.inward ? ORDER_IN : ORDER_OUT);
   return order.slice(0, n).map(([side, f]) => {
@@ -46,6 +47,7 @@ const sizeFor = (n) => 1 - 0.45 * Math.max(0, n - 1) / (SCHEME_MAX - 1);
 
 // веер обзора на земле: лучи до края участка/комнаты
 function coneRays(cam, spec, n, steps = 14) {
+  spec = cam.spec || spec; // у камеры в кабине лифта веер — в пределах своей кабины
   const half = (spec.half || 38) * Math.PI / 180;
   const L = (spec.L || 7) * (1 - 0.35 * Math.max(0, n - 1) / (SCHEME_MAX - 1));
   const [cx0, cy0, cx1, cy1] = spec.clip;
@@ -112,6 +114,41 @@ const tiles = (x0, y0, x1, y1, step = 1) => {
   for (let y = y0 + step; y < y1; y += step) L.push({ pts: [[x0, y, 0], [x1, y, 0]], stroke: 'rgba(10,36,99,.06)' });
   return L;
 };
+
+// кабина лифта в разрезе: дальние стены (задняя, левая) — в полную высоту, ближние (правая, передняя с проёмом дверей) — низкие,
+// как у комнат; внутри зеркало, поручень и кнопки; камера — в дальнем углу под потолком, смотрит на двери
+const CAB = { w: 1.6, d: 1.5, H: 2.3, gapX: 0.35, gapY: 0.9, row: 4 };
+function cabin(x0, y0, againstWall, no) {
+  const { w, d, H } = CAB, fill = '#C9D1DE', cut = 0.35;
+  return {
+    ground: { r: [x0, y0, x0 + w, y0 + d], fill: '#DCE2EC' },
+    boxes: [
+      ...(againstWall ? [] : [{ x: x0 - 0.1, y: y0 - 0.1, w: w + 0.2, d: 0.1, h: cut, fill }]), // первый ряд — у стены холла; у следующих задняя стенка низкая, чтобы не закрывала первый
+      { x: x0 - 0.1, y: y0, w: 0.1, d, h: H, fill },
+      { x: x0 + w, y: y0, w: 0.1, d, h: cut, fill },
+      { x: x0 - 0.1, y: y0 + d, w: 0.45, d: 0.1, h: cut, fill },
+      { x: x0 + w - 0.35, y: y0 + d, w: 0.45, d: 0.1, h: cut, fill },
+      { x: x0 + 0.25, y: y0 + 0.01, w: 1.1, d: 0.04, h: 1.1, z: 0.9, fill: SC.glass }, // зеркало
+      { x: x0 + 0.01, y: y0 + 0.25, w: 0.05, d: 0.7, h: 0.05, z: 0.9, fill: '#9AA6BA' }, // поручень
+      { x: x0 + 0.01, y: y0 + 1.1, w: 0.04, d: 0.22, h: 0.5, z: 0.9, fill: SC.dark }, // кнопки
+    ],
+    label: { x: x0 + w / 2, y: y0 + d + 0.45, z: 0, t: no ? `лифт ${no}` : 'лифт' },
+    cam: { x: x0 + 0.15, y: y0 + 0.15, z: 2.1, dir: Math.atan2(1, 0.75), per: 0, spec: { clip: [x0, y0, x0 + w, y0 + d], L: 2.4, half: 34 } },
+  };
+}
+// сцена «Лифт»: по кабине на камеру, по 4 в ряд; следующий ряд — ближе к зрителю
+function liftScene(n) {
+  const k = Math.max(1, n), cols = Math.min(k, CAB.row), rows = Math.ceil(k / CAB.row);
+  const W = cols * (CAB.w + CAB.gapX) + 0.5, D = rows * (CAB.d + CAB.gapY) + 0.4;
+  const cabs = Array.from({ length: k }, (_, i) => cabin(0.4 + (i % CAB.row) * (CAB.w + CAB.gapX), 0.1 + Math.floor(i / CAB.row) * (CAB.d + CAB.gapY), i < CAB.row, k > 1 && i + 1));
+  return {
+    ground: [{ r: [0, 0, W, D], fill: SC.floor }, ...cabs.map((c) => c.ground)],
+    lines: tiles(0, 0, W, D, 0.8),
+    boxes: [{ x: -0.2, y: -0.2, w: W + 0.4, d: 0.2, h: CAB.H + 0.4, fill: SC.wall, kind: 'wall' }, ...cabs.flatMap((c) => c.boxes)],
+    labels: cabs.map((c) => c.label),
+    cams: { fixed: cabs.map((c) => c.cam) },
+  };
+}
 
 const SCENES = {
   home: {
@@ -210,6 +247,8 @@ const SCENES = {
       labels: [{ x: 2.8, y: 0.2, z: 2.6, t: 'лифт' }, { x: 7.5, y: 2, z: 1.6, t: 'лестница' }, { x: 0.4, y: 1.6, z: 2.2, t: 'почта' }],
       cams: { rect: [0, 0, 9, 7], z: 2.8, inward: true, clip: [0, 0, 9, 7], L: 5.5 },
     },
+    // сцена зависит от числа камер (кабин) — scheme3d.js собирает её через build(n)
+    lift: { title: 'Лифт', build: liftScene },
   },
   business: {
     name: 'Коммерческий объект',

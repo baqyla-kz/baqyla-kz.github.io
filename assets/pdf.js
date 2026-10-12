@@ -166,7 +166,7 @@ function smetaPages(host, bg, ctx, sub) {
   if (pages.length > 1) pages.forEach((p, i) => { p.querySelector('.chip--white').textContent = L(`Лист ${i + 1} из ${pages.length}`, `${i + 1}/${pages.length} бет`); });
 }
 
-// лист схемы: снаружи и внутри одна под другой, номера и подписи — внутри чертежа
+// лист схемы: снаружи, внутри и лифт (ЖК) — одна под другой, номера и подписи — внутри чертежа
 function schemePage(host, bg, ctx, sub, mode, sheet) {
   const pg = page(host, bg, header(L('Схема установки', 'Орнату схемасы'), sub, [[CITY(), 'glass'], [`${L(`Лист ${sheet} из 2`, `${sheet}/2 бет`)} · ${mode.toUpperCase()}`, 'white']]));
   const body = pg.querySelector('.body');
@@ -174,6 +174,7 @@ function schemePage(host, bg, ctx, sub, mode, sheet) {
   const card = pg.querySelector('.card');
   const c = ctx.e.c;
   const parts = [['out', c.out, 1], ['in', c.inn, c.out + 1]];
+  if (ctx.scene.lift && c.lift) parts.push(['lift', c.lift, c.out + c.inn + 1]);
   card.innerHTML = parts.map(([k, n]) => `<div class="scn" data-k="${k}"><div class="scn__t">${esc(t(ctx.scene[k].title))}<span>${n} ${plural(n, 'камера', 'камеры', 'камер')}</span></div><div class="scn__img"></div></div>`).join('<div class="scn__div"></div>');
   for (const [k, n, start] of parts) {
     const box = card.querySelector(`[data-k="${k}"] .scn__img`);

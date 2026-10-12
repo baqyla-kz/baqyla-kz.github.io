@@ -8,6 +8,7 @@ const fresh = () => ({
   on: Object.fromEntries(Object.keys(PLANS).map((k) => [k, new Set()])),
   extraOut: 0,
   extraIn: 0,
+  extraLift: 0, // камеры в лифте (только ЖК): на схеме «Лифт» — по кабине на камеру
   store: null, // носитель записи: 'sd' | '2x1' (диск 2 ТБ) | '8x2' (два по 8 ТБ)…, см. storeOptions в data.js; null — не выбран, в смете без носителя
   net: null, // интернет на объекте: 'yes' | 'no' | null — ещё не ответили
   cable: 15, // метров кабеля на камеру — по объекту (PLANS[…].cable), клиент не выбирает
@@ -37,7 +38,7 @@ const STEPS = [
       if (state.plan !== v) {
         state.plan = v;
         state.on[v] = new Set(); // по умолчанию камер нет — клиент сам ставит «+» на шаге «Камеры»
-        state.extraOut = state.extraIn = 0;
+        state.extraOut = state.extraIn = state.extraLift = 0;
         state.cable = PLANS[v].cable;
       }
     },
@@ -152,7 +153,7 @@ function schemeHint() {
   hintTimer = setTimeout(() => {
     if (state.step !== STEPS.length - 1 || !window.Scheme3D) return;
     schemeTouched = false;
-    for (const k of ['out', 'in']) if ($(`#sch-${k}`)) wobble(k, $(`#sch-${k}`));
+    for (const k of ['out', 'in', 'lift']) if ($(`#sch-${k}`)) wobble(k, $(`#sch-${k}`));
   }, 5000);
 }
 function wobble(k, el) {
@@ -180,7 +181,7 @@ $('#stepBody').addEventListener('pointerdown', (e) => { if (e.target.closest('.s
 // сбрасывается, как при первом заходе: выбор на самом этом шаге остаётся
 function resetAfter(step) {
   if (step < 1) { // «Камеры»: снова 0 камер, смета — цена за одну камеру
-    Object.assign(state, { on: fresh().on, extraOut: 0, extraIn: 0 });
+    Object.assign(state, { on: fresh().on, extraOut: 0, extraIn: 0, extraLift: 0 });
     if (state.plan) state.cable = PLANS[state.plan].cable;
     state.picked[1] = false;
   }
@@ -242,10 +243,10 @@ $('#back').addEventListener('click', () => go(state.step - 1));
 // «+» ставит камеру в следующую свободную точку (сначала base, потом остальные), точки кончились — в «ещё».
 // «−» сначала убирает из «ещё», потом последнюю точку. На шаге «Схема» важны только числа «снаружи / внутри».
 
-const EXTRA = { out: 'extraOut', in: 'extraIn' };
+const EXTRA = { out: 'extraOut', in: 'extraIn', lift: 'extraLift' };
 
 function zoneOrder(plan, zone) {
-  const p = PLANS[plan], base = p.base[zone];
+  const p = PLANS[plan], base = p.base[zone] || [];
   const rest = p.slots.map((s, i) => (s.t === zone && !base.includes(i) ? i : -1)).filter((i) => i >= 0);
   return [...base, ...rest];
 }
@@ -270,8 +271,9 @@ const photoStyle = ({ pos: [x, y], zoom }) => `object-position:${x}% ${y}%;trans
 
 function renderZones() {
   const p = PLANS[state.plan], c = counts(state);
-  const n = { out: c.out, in: c.inn };
-  return `<div class="cnt">${['out', 'in'].map((zone) => {
+  const n = { out: c.out, in: c.inn, lift: c.lift };
+  const zones = Object.keys(p.zones); // у ЖК третья карточка — «В лифте»: снаружи слева, подъезд и лифт справа
+  return `<div class="cnt${zones.length > 2 ? ' cnt--three' : ''}">${zones.map((zone) => {
     const z = p.zones[zone], k = n[zone], name = t(z.t).toLowerCase();
     return `
     <div class="cnt__card${k ? ' is-on' : ''}" data-zone="${zone}">
@@ -300,16 +302,17 @@ const view = '3d'; // на сайте только 3D (2D — в PDF)
 
 function renderScheme() {
   const sc = SCENES[state.plan], c = counts(state);
+  const many = [c.out, c.inn, c.lift].filter(Boolean).length > 1;
   const pane = (k, n) => `
     <section class="sch__pane">
       <div class="sch__head">${t(sc[k].title)}<span class="sch__chip">${camsWord(n)}</span></div>
-      <div class="sch__stage" id="sch-${k}" data-fit="${c.out && c.inn ? 0.92 : 0.94}" data-zoom="${c.out && c.inn ? 1.1 : 1.4}"><p class="sch__wait">${t('Загружаем схему…')}</p></div>
+      <div class="sch__stage" id="sch-${k}" data-fit="${many ? 0.92 : 0.94}" data-zoom="${many ? 1.1 : 1.4}"><p class="sch__wait">${t('Загружаем схему…')}</p></div>
     </section>`;
-  // зона без камер не рисуется: одна схема — на всю ширину; две — крупнее и ближе (data-fit → поля вокруг сцены в scheme3d.js)
-  const panes = [['out', c.out], ['in', c.inn]].filter(([, n]) => n > 0).map(([k, n]) => pane(k, n));
+  // зона без камер не рисуется: одна схема — на всю ширину; две-три — рядом, крупнее и ближе (data-fit → поля вокруг сцены в scheme3d.js)
+  const panes = [['out', c.out], ['in', c.inn], ['lift', c.lift]].filter(([, n]) => n > 0).map(([k, n]) => pane(k, n));
   return `
     <div class="sch" data-view="${view}">
-      <div class="sch__grid${panes.length < 2 ? ' sch__grid--one' : ''}">${panes.join('<div class="sch__div" aria-hidden="true"></div>')}</div>
+      <div class="sch__grid${panes.length < 2 ? ' sch__grid--one' : panes.length > 2 ? ' sch__grid--three' : ''}">${panes.join('<div class="sch__div" aria-hidden="true"></div>')}</div>
     </div>`;
 }
 
@@ -319,7 +322,7 @@ function drawScheme() {
     return;
   }
   const sc = SCENES[state.plan], c = counts(state);
-  for (const [k, n, start] of [['out', c.out, 1], ['in', c.inn, c.out + 1]]) {
+  for (const [k, n, start] of [['out', c.out, 1], ['in', c.inn, c.out + 1], ['lift', c.lift, c.out + c.inn + 1]]) {
     const box = $(`#sch-${k}`);
     if (!box) continue; // зоны без камер нет на схеме (или шаг уже сменился)
     box.querySelector('.sch__wait')?.remove();
@@ -385,14 +388,14 @@ $('#adds').addEventListener('click', (e) => {
   renderSmeta();
 });
 
-// лимит — на каждую зону отдельно: 16 снаружи и 16 внутри
-const zoneFull = (s, zone) => { const c = counts(s); return (zone === 'out' ? c.out : c.inn) >= PRICE.maxPerZone; };
-const tooMany = (s) => { const c = counts(s); return c.out > PRICE.maxPerZone || c.inn > PRICE.maxPerZone; };
+// лимит — на каждую зону отдельно: 16 снаружи, 16 внутри, 16 в лифте
+const zoneFull = (s, zone) => { const c = counts(s); return { out: c.out, in: c.inn, lift: c.lift }[zone] >= PRICE.maxPerZone; };
+const tooMany = (s) => { const c = counts(s); return Math.max(c.out, c.inn, c.lift) > PRICE.maxPerZone; };
 
 function canAdd(zone) {
   if (!zoneFull(state, zone)) return true;
-  toast(L(`Больше ${PRICE.maxPerZone} камер ${zone === 'out' ? 'снаружи' : 'внутри'} посчитаем отдельно — напишите нам`,
-    `${zone === 'out' ? 'Сыртқа' : 'Ішке'} ${PRICE.maxPerZone}-дан көп камераны бөлек есептейміз — бізге жазыңыз`));
+  toast(L(`Больше ${PRICE.maxPerZone} камер ${{ out: 'снаружи', in: 'внутри', lift: 'в лифтах' }[zone]} посчитаем отдельно — напишите нам`,
+    `${{ out: 'Сыртқа', in: 'Ішке', lift: 'Лифттерге' }[zone]} ${PRICE.maxPerZone}-дан көп камераны бөлек есептейміз — бізге жазыңыз`));
   return false;
 }
 
@@ -401,10 +404,10 @@ function canAdd(zone) {
 let shown = 0, raf = 0, from = '', smetaOpen = false; // smetaOpen — в смете есть сумма (иначе мобильную панель не показываем)
 function animateTotal(to) {
   cancelAnimationFrame(raf);
-  const from = shown, t0 = performance.now();
+  const start = shown, t0 = performance.now(); // не from: from — приставка «от» для мобильной панели
   const step = (t) => {
     const k = reduceMotion.matches ? 1 : Math.min(1, (t - t0) / 380);
-    shown = from + (to - from) * (1 - Math.pow(1 - k, 3));
+    shown = start + (to - start) * (1 - Math.pow(1 - k, 3));
     $('#total').textContent = fmt(shown);
     $('#mTotal').textContent = from + fmt(shown);
     if (k < 1) raf = requestAnimationFrame(step);
@@ -481,7 +484,9 @@ function summary(e) {
   const obj = OBJECTS.find((o) => o.plan === state.plan);
   return [
     `${L('Объект', 'Нысан')}: ${obj ? t(obj.t).toLowerCase() : t(PLANS[state.plan].tab)}`,
-    L(`Камер: ${e.c.total} (снаружи ${e.c.out}, внутри ${e.c.inn})`, `Камера: ${e.c.total} (сыртта ${e.c.out}, ішінде ${e.c.inn})`),
+    e.c.lift
+      ? L(`Камер: ${e.c.total} (снаружи ${e.c.out}, внутри ${e.c.inn}, в лифте ${e.c.lift})`, `Камера: ${e.c.total} (сыртта ${e.c.out}, ішінде ${e.c.inn}, лифтте ${e.c.lift})`)
+      : L(`Камер: ${e.c.total} (снаружи ${e.c.out}, внутри ${e.c.inn})`, `Камера: ${e.c.total} (сыртта ${e.c.out}, ішінде ${e.c.inn})`),
     e.store ? L(`Запись: ${storeLabel(e.store)}, примерно ${daysRange(storeDays(e.store, e.c.total)).text}`, `Жазба: ${storeLabel(e.store)}, шамамен ${daysRange(storeDays(e.store, e.c.total)).text}`) : L('Запись: не выбрана', 'Жазба: таңдалмаған'),
     L(`Кабель: ~${state.cable} м на камеру`, `Кабель: әр камераға ~${state.cable} м`),
     state.net ? L(`Интернет на объекте: ${state.net === 'yes' ? 'есть' : 'нет'}`, `Нысанда интернет: ${state.net === 'yes' ? 'бар' : 'жоқ'}`) : '',
@@ -615,6 +620,7 @@ function load() {
   next.cable = PLANS[d.plan].cable; // расстояние больше не спрашиваем — старый выбор не тянем
   next.extraOut = int(d.extraOut, PRICE.maxPerZone) ?? 0;
   next.extraIn = int(d.extraIn, PRICE.maxPerZone) ?? 0;
+  next.extraLift = int(d.extraLift ?? 0, PRICE.maxPerZone) ?? 0;
   next.addons = Array.isArray(d.addons) ? Object.keys(ADDON).filter((k) => d.addons.includes(k)) : [];
   if (tooMany(next)) return false;
   if (Array.isArray(d.picked)) next.picked = next.picked.map((_, i) => d.picked[i] === true);
@@ -631,6 +637,7 @@ function shareUrl() {
   const p = new URLSearchParams({ obj: state.plan, cams: [...state.on[state.plan]].sort((a, b) => a - b).map((i) => i + 1).join('.') });
   if (state.extraOut) p.set('out', state.extraOut);
   if (state.extraIn) p.set('in', state.extraIn);
+  if (state.extraLift) p.set('lift', state.extraLift);
   if (state.store) p.set('rec', state.store);
   if (state.net) p.set('net', state.net);
   if (state.addons.length) p.set('add', state.addons.join('.'));
@@ -655,11 +662,12 @@ function applyUrl() {
   next.on[plan] = on;
   next.extraOut = int(q.get('out') || 0, PRICE.maxPerZone) ?? 0;
   next.extraIn = int(q.get('in') || 0, PRICE.maxPerZone) ?? 0;
+  next.extraLift = int(q.get('lift') || 0, PRICE.maxPerZone) ?? 0;
   next.store = q.get('rec');
   next.net = NETS.includes(q.get('net')) ? q.get('net') : null;
   next.addons = Object.keys(ADDON).filter((k) => (q.get('add') || '').split('.').includes(k));
   next.cable = CABLES.includes(+q.get('cable')) ? +q.get('cable') : PLANS[plan].cable;
-  if (tooMany(next)) next.extraOut = next.extraIn = 0;
+  if (tooMany(next)) next.extraOut = next.extraIn = next.extraLift = 0;
   next.picked = [true, true, true];
   next.step = STEPS.length - 1;
   Object.assign(state, next);

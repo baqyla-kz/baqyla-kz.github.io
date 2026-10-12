@@ -411,6 +411,15 @@ h1 {
   .cnt__ctl button { width: 48px; height: 48px; }
   .cnt__n { min-width: 48px; font-size: 30px; }
 }
+/* ЖК: три карточки — «Снаружи» высокая слева, «Внутри подъезда» и «В лифте» — две низкие справа; на телефоне — столбиком */
+.cnt--three .cnt__card[data-zone="out"] { grid-row: span 2; }
+.cnt--three .cnt__card:not([data-zone="out"]) { min-height: 200px; }
+.cnt--three .cnt__card:not([data-zone="out"]) .cnt__cam { width: 64px; margin-bottom: 8px; border-radius: 16px; }
+@container wiz (max-width: 560px) {
+  .cnt--three .cnt__card[data-zone="out"] { grid-row: auto; }
+  .cnt--three .cnt__card:not([data-zone="out"]) { min-height: 250px; }
+  .cnt--three .cnt__card:not([data-zone="out"]) .cnt__cam { width: clamp(64px, 19cqi, 92px); margin-bottom: 10px; border-radius: 20px; }
+}
 .cnt-sum { display: flex; align-items: center; gap: 10px; margin-top: 16px; padding: 12px 16px; border-radius: 14px; background: #EEF4FE; color: var(--signal); font: 600 17px var(--f-display); }
 .cnt-sum img { width: 34px; height: 34px; }
 @media (prefers-reduced-motion: reduce) {
@@ -430,6 +439,15 @@ h1 {
 .sch__stage { position: relative; aspect-ratio: 1; margin-top: 6px; cursor: grab; touch-action: pan-y; } /* две схемы рядом — квадрат, крупнее */
 .sch__grid--one { grid-template-columns: minmax(0, 1fr); }
 .sch__grid--one .sch__stage { aspect-ratio: 16 / 9; } /* одна схема — на всю ширину */
+/* три схемы (ЖК: двор, подъезд, лифт): широкая колонка — в ряд; средняя — двор на всю ширину, подъезд и лифт под ним;
+   на телефоне — друг под другом (правило @media ниже) */
+.sch__grid--three { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr); }
+@container wiz (max-width: 1100px) {
+  .sch__grid--three { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+  .sch__grid--three > .sch__pane:first-child { grid-column: 1 / -1; }
+  .sch__grid--three > .sch__pane:first-child .sch__stage { aspect-ratio: 16 / 9; }
+  .sch__grid--three > .sch__div:nth-child(2) { grid-column: 1 / -1; width: auto; height: 1px; margin: 0 20px; background: repeating-linear-gradient(to right, #C9D5EA 0 6px, transparent 6px 12px); }
+}
 .sch[data-view="2d"] .sch__stage { cursor: default; }
 .sch__stage canvas { display: block; width: 100%; height: 100%; }
 .sch__hint { position: absolute; left: 50%; bottom: 52px; z-index: 3; display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: rgba(10, 36, 99, .88); color: #fff; font: 600 13.5px var(--f-body); white-space: nowrap; box-shadow: 0 8px 24px rgba(10, 36, 99, .25); pointer-events: none; opacity: 0; transform: translate(-50%, 4px); transition: opacity .35s, transform .35s; }
@@ -451,6 +469,7 @@ h1 {
   .sch__div { width: auto; height: 1px; margin: 0 20px; background: repeating-linear-gradient(to right, #C9D5EA 0 6px, transparent 6px 12px); }
   .sch__pane { padding: 14px 12px 10px; }
   .sch__grid--one .sch__stage { aspect-ratio: 4 / 3; }
+  .sch__grid--three > .sch__pane:first-child .sch__stage { aspect-ratio: 1; } /* на телефоне двор — квадратом, как остальные */
 }
 
 
