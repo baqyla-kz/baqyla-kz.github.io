@@ -643,7 +643,7 @@ h1 {
 .kit__photo img { width: 100%; height: 100%; object-fit: cover; }
 /* схема: одна — справа во всю высоту; две — снаружи сверху, внутри снизу, между ними пунктир (kits.js рисует кадр под размер блока) */
 .kit__sch { position: absolute; top: 0; right: 0; bottom: 0; width: 66%; }
-.kit__sch--out, .kit__sch--in { width: 70%; height: 50%; }
+.kit__sch--out, .kit__sch--in { width: 70%; height: 50%; overflow: hidden; } /* кадр крупнее блока — видно кусок вокруг камер (kits.js) */
 .kit__sch--out { bottom: auto; }
 .kit__sch--in { top: auto; }
 .kit__sch img { display: block; width: 100%; height: 100%; }

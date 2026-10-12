@@ -41,7 +41,7 @@ function renderKits() {
     return `
     <article class="kit">
       <div class="kit__media" aria-hidden="true">
-        ${zones.map(([zone, n, start]) => `<div class="kit__sch${two ? ` kit__sch--${zone}` : ''}" data-plan="${k.plan}" data-zone="${zone}" data-n="${n}" data-start="${start}" data-zoom="${two ? 1 : 1.1}"></div>`
+        ${zones.map(([zone, n, start]) => `<div class="kit__sch${two ? ` kit__sch--${zone}` : ''}" data-plan="${k.plan}" data-zone="${zone}" data-n="${n}" data-start="${start}" data-zoom="${two ? 1 : 1.1}"${two ? ' data-crop="1.7"' : ''}></div>`
           + (two ? `<span class="kit__zone kit__zone--${zone}">${t({ out: 'Снаружи', in: 'Внутри' }[zone])} <b>${n}</b></span>` : '')).join('')}
         ${two ? '<i class="kit__div"></i>' : ''}
         <div class="kit__photo">${k.pic ? `<img src="${picUrl(k.pic)}" alt="">` : `<img src="assets/photos/${z.photo}.webp" alt="" style="object-position:${z.pos[0]}% ${z.pos[1]}%">`}</div>
@@ -66,7 +66,9 @@ function renderKits() {
 }
 
 // схема — кадр 3D-сцены (scheme3d.js, как в PDF) под размер блока, ×2 для чёткости; номера камер — поверх в %.
-// Одна схема — на 10 % ближе (data-zoom). Кадры запоминаются: перерисовка раздела или языка их не пересчитывает.
+// Одна схема — на 10 % ближе (data-zoom). Две — в data-crop раз крупнее: кадр снимаем больше блока и показываем
+// кусок вокруг камер (а не вокруг центра сцены — камера у края комнаты не уезжает за рамку).
+// Кадры запоминаются: перерисовка раздела или языка их не пересчитывает.
 const kitShots = {};
 function drawKitSchemes() {
   if (!window.Scheme3D) return; // модуль ещё грузится — нарисуем по scheme3d-ready
@@ -75,14 +77,19 @@ function drawKitSchemes() {
   for (const box of document.querySelectorAll('.kit__sch[data-zone]')) {
     const w = Math.round(box.clientWidth * 2), h = Math.round(box.clientHeight * 2);
     if (!w || !h) continue;
-    const d = box.dataset, key = [d.plan, d.zone, d.n, d.start, d.zoom, w, h].join('|');
+    const d = box.dataset, z = +d.crop || 1, W = Math.round(w * z), H = Math.round(h * z);
+    const key = [d.plan, d.zone, d.n, d.start, d.zoom, W, H].join('|');
     if (!kitShots[key]) {
       st.el.dataset.zoom = d.zoom;
-      kitShots[key] = Scheme3D.snapshot('kit', SCENES[d.plan][d.zone], +d.n, +d.start, '3d', w, h);
+      kitShots[key] = Scheme3D.snapshot('kit', SCENES[d.plan][d.zone], +d.n, +d.start, '3d', W, H);
     }
-    const s = kitShots[key];
-    box.innerHTML = `<img src="${s.url}" alt="">` + s.marks.filter((m) => m.kind === 'b')
-      .map((m) => `<span class="sch__b${m.hid ? ' is-hid' : ''}" style="left:${m.x / w * 100}%;top:${m.y / h * 100}%">${m.text}</span>`).join('');
+    const s = kitShots[key], bs = s.marks.filter((m) => m.kind === 'b');
+    // окно w×h по центру камер, не за краем кадра; сверху над камерой — место под кружок номера (22 px ×2 + поля)
+    const cx = bs.reduce((a, m) => a + m.x, 0) / bs.length, cy = bs.reduce((a, m) => a + m.y, 0) / bs.length;
+    const top = Math.max(0, Math.min(H - h, cy - h / 2, Math.min(...bs.map((m) => m.y)) - 80));
+    const left = Math.max(0, Math.min(W - w, cx - w / 2));
+    box.innerHTML = `<img src="${s.url}" alt="" style="width:${z * 100}%;height:${z * 100}%;transform:translate(${-left / W * 100}%,${-top / H * 100}%)">`
+      + bs.map((m) => `<span class="sch__b${m.hid ? ' is-hid' : ''}" style="left:${(m.x - left) / w * 100}%;top:${(m.y - top) / h * 100}%">${m.text}</span>`).join('');
   }
 }
 let kitResize;
