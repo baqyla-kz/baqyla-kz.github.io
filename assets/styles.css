@@ -1,4 +1,6 @@
 :root {
+  --mask-wa: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.3-.5 0-1 .2-3.3-.7-2.8-1.1-4.5-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.3.5-.4.5c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.5.1.6-.1l.9-1.1c.2-.3.4-.2.7-.1l2 1c.3.1.5.2.5.3.1.2.1.7-.1 1.3Z'/%3E%3C/svg%3E");
+  --mask-phone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z'/%3E%3C/svg%3E");
   --bg: #F4F6F9;
   --panel: #FFFFFF;
   --panel-2: #F1F4F8;
@@ -57,27 +59,11 @@ button { font: inherit; color: inherit; }
 .nav a { padding: 7px 16px; border-radius: 9px; color: var(--muted); text-decoration: none; font-size: 15px; font-weight: 500; transition: color .15s; }
 .nav a:hover { color: var(--text); }
 .nav a[aria-current="page"] { color: var(--text); background: #fff; box-shadow: 0 1px 2px rgba(14,18,24,.08), 0 1px 6px rgba(14,18,24,.06); }
-/* город — серая плашка, как дорожка разделов; цена установки по центру оставшегося места;
-   уже 1400 px (с переключателем языка в строку не влезают) — оба второй строкой под шапкой */
-.top__mid { flex: 1; display: flex; align-items: center; gap: 24px; min-width: 0; }
-.top__city { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px 0 10px; border-radius: 12px; background: var(--panel-2); font-size: 15px; font-weight: 500; white-space: nowrap; }
+/* город — серая плашка, как дорожка разделов; справа, рядом с языком */
+.top__city { display: inline-flex; align-items: center; gap: 6px; height: 40px; margin-left: auto; padding: 0 14px 0 10px; border-radius: 12px; background: var(--panel-2); font-size: 15px; font-weight: 500; white-space: nowrap; }
 .top__city svg { flex: none; color: var(--signal); }
-.top__price { flex: 1; margin: 0; text-align: center; font-size: 15px; color: var(--muted); white-space: nowrap; }
-.top__price i { margin: 0 8px; font-style: normal; color: var(--faint); }
-.top__price b { color: var(--signal); font-weight: 700; }
-@media (max-width: 1399px) {
-  .top__in { flex-wrap: wrap; height: auto; min-height: 64px; padding-top: 12px; padding-bottom: 10px; row-gap: 8px; }
-  .top__mid { order: 1; flex-basis: 100%; justify-content: center; gap: 14px; }
-  .top__price { flex: none; }
-  html { scroll-padding-top: 136px; }
-}
-.top__phone { display: none; font: 500 14px var(--f-mono); text-decoration: none; color: var(--muted); }
-.top__phone:hover { color: var(--text); }
-@media (min-width: 900px) {
-  .top__phone { display: block; }
-}
-/* язык — капсула с круглым флагом и названием, по нажатию — меню; прижимает телефон и WhatsApp вправо */
-.lang { position: relative; flex: none; margin-left: auto; }
+/* язык — капсула с круглым флагом и названием, по нажатию — меню */
+.lang { position: relative; flex: none; }
 .lang__btn { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px 0 6px; border: 0; border-radius: 999px; background: var(--panel-2); color: var(--text); font: 500 14px var(--f-body); cursor: pointer; transition: background .15s; }
 .lang__btn:hover { background: var(--line-soft); }
 .lang__flag { flex: none; width: 28px; height: 28px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 1px rgba(14,18,24,.1); }
@@ -90,20 +76,18 @@ button { font: inherit; color: inherit; }
 .lang__menu .lang__flag { width: 22px; height: 22px; }
 .lang__menu [aria-checked="true"] { font-weight: 600; }
 .lang__menu [aria-checked="true"]::after { content: ''; width: 6px; height: 6px; margin-left: auto; border-radius: 50%; background: var(--signal); }
-/* узкий телефон: логотип без слова, WhatsApp — одной иконкой */
-@media (max-width: 520px) {
+/* уже 800 px: логотип без слова, язык — одним флагом; на узком телефоне город не помещается — скрыт */
+@media (max-width: 799px) {
   .top__in { gap: 12px; }
   .top .brand__word { display: none; }
   .nav { margin-left: 0; }
   .nav a { padding: 7px 12px; }
-  .top__wa { width: 40px; padding: 0; }
-  .top__wa span { display: none; }
   .lang__btn { width: 40px; padding: 0; justify-content: center; }
   .lang__name, .lang__chev { display: none; }
-  .top__mid { gap: 8px; }
-  .top__city { height: 30px; padding: 0 10px 0 7px; border-radius: 9px; font-size: 13px; }
-  .top__city svg { width: 15px; height: 15px; }
-  .top__price { font-size: 14px; }
+}
+@media (max-width: 520px) {
+  .top__city { display: none; }
+  .lang { margin-left: auto; }
 }
 
 /* ---------- кнопки ---------- */
@@ -123,8 +107,8 @@ button { font: inherit; color: inherit; }
 .btn--wa::before {
   content: ''; width: 18px; height: 18px; flex: none;
   background: currentColor;
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.3-.5 0-1 .2-3.3-.7-2.8-1.1-4.5-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.3.5-.4.5c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.5.1.6-.1l.9-1.1c.2-.3.4-.2.7-.1l2 1c.3.1.5.2.5.3.1.2.1.7-.1 1.3Z'/%3E%3C/svg%3E") center / contain no-repeat;
-          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.3-.5 0-1 .2-3.3-.7-2.8-1.1-4.5-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.3.5-.4.5c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.5.1.6-.1l.9-1.1c.2-.3.4-.2.7-.1l2 1c.3.1.5.2.5.3.1.2.1.7-.1 1.3Z'/%3E%3C/svg%3E") center / contain no-repeat;
+  -webkit-mask: var(--mask-wa) center / contain no-repeat;
+          mask: var(--mask-wa) center / contain no-repeat;
 }
 .btn--ghost { background: #fff; border: 2px solid #AEB7C4; color: var(--text); }
 .btn--ghost:hover { border-color: var(--text); }
@@ -149,7 +133,7 @@ h1 {
 /* ---------- калькулятор ---------- */
 .calc {
   display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr);
-  padding-bottom: 72px;
+  padding-bottom: 48px;
 }
 @media (min-width: 1000px) {
   .calc { grid-template-columns: minmax(0, 1fr) 400px; gap: 28px; align-items: start; }
@@ -606,7 +590,7 @@ h1 {
 .btn[hidden] { display: none; }
 
 /* ---------- комплекты ---------- */
-.kits { display: grid; gap: 16px; max-width: 1400px; padding-bottom: 72px; }
+.kits { display: grid; gap: 16px; max-width: 1400px; padding-bottom: 48px; }
 .soon { position: relative; }
 .soon .kits { filter: blur(9px); opacity: .75; pointer-events: none; user-select: none; }
 .soon__badge {
@@ -650,3 +634,17 @@ h1 {
   transition: opacity .2s, transform .2s;
 }
 .toast.is-on { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- контакты внизу страницы: две спокойные плитки — позвонить и WhatsApp ---------- */
+/* страница до контактов — не короче экрана под шапкой (65 px): блок видно, только если чуть пролистать */
+main:has(+ .contacts) { min-height: calc(100vh - 65px); min-height: calc(100svh - 65px); }
+.contacts { padding-bottom: 72px; }
+.contacts__t { margin: 0 0 14px; font: 700 22px var(--f-display); }
+.contacts__tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; max-width: 760px; }
+.contacts__tiles a { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border: 1px solid var(--line-soft); border-radius: 16px; background: #fff; color: var(--text); font-weight: 600; text-decoration: none; transition: border-color .15s; }
+.contacts__tiles a:hover { border-color: #AEB7C4; }
+.contacts__ph { font: 500 17px var(--f-mono); }
+.contacts__ic { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--panel-2); }
+.contacts__ic::before { content: ''; width: 18px; height: 18px; background: var(--muted); }
+.contacts__ic--ph::before { -webkit-mask: var(--mask-phone) center / contain no-repeat; mask: var(--mask-phone) center / contain no-repeat; }
+.contacts__ic--wa::before { -webkit-mask: var(--mask-wa) center / contain no-repeat; mask: var(--mask-wa) center / contain no-repeat; }

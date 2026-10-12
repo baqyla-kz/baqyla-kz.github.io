@@ -699,15 +699,12 @@ addEventListener('resize', syncBar);
 // настройки из админки (admin.html → Supabase site_settings): сначала последние известные из браузера — без мигания цен,
 // потом свежие с сервера; не получилось — остаются значения по умолчанию из data.js
 const SETTINGS_CACHE = 'baqyla-settings-v1';
-const topPrice = () => { $('#topPrice').textContent = fmt(PRICE.install.price); }; // «Установка 1 камеры — 15 000 ₸» в шапке
 try { applySettings(JSON.parse(localStorage.getItem(SETTINGS_CACHE))); } catch (_) { /* нет кэша */ }
-topPrice();
 fetch(`${CRM.url}/rest/v1/site_settings?key=eq.${SETTINGS_KEY}&select=value`, { headers: { apikey: CRM.key } })
   .then((r) => (r.ok ? r.json() : []))
   .then((rows) => {
     if (!rows[0] || !applySettings(rows[0].value)) return;
     try { localStorage.setItem(SETTINGS_CACHE, JSON.stringify(rows[0].value)); } catch (_) { /* приватный режим */ }
-    topPrice();
     renderStep();
     renderSmeta();
   })
@@ -722,5 +719,4 @@ schemeHint();
 addEventListener('langchange', () => {
   renderStep();
   renderSmeta();
-  topPrice();
 });
