@@ -32,7 +32,7 @@ const STEPS = [
   {
     name: 'Объект',
     q: 'Какой у вас объект?',
-    options: () => OBJECTS.map((o) => ({ v: o.plan, on: state.plan === o.plan, html: `${icon(o.icon)}<b>${o.t}</b><small>${o.d}</small>` })),
+    options: () => OBJECTS.map((o) => ({ v: o.plan, on: state.plan === o.plan, html: `${icon(o.icon)}<b>${t(o.t)}</b><small>${t(o.d)}</small>` })),
     pick: (v) => {
       if (state.plan !== v) {
         state.plan = v;
@@ -59,9 +59,9 @@ const STEPS = [
         const pics = o.sd ? 1 : o.tb >= 2 || o.qty > 1 ? 2 : 1; // от 2 ТБ — две иконки диска
         return {
           v: o.key, on: cur === o.key,
-          html: `<span class="o__big o__big--store" aria-hidden="true"><span class="o__media o__media--${o.sd ? 'sd' : 'hdd'}">${`<img src="assets/icons/${o.sd ? 'sd' : 'hdd'}.webp" alt="">`.repeat(pics)}</span><span class="o__days">хранить<b>${r.num}</b>${r.unit}</span></span>`
-            + (o.sd ? `<b>Карта памяти ${PRICE.sd.gb} ГБ</b><small>В каждой камере, без регистратора</small>`
-              : `<b>${o.qty > 1 ? `${o.qty} диска по ${o.tb} ТБ` : `Диск ${o.tb} ТБ`}</b><small>В регистраторе, на ${n} ${plural(n, 'камеру', 'камеры', 'камер')}</small>`),
+          html: `<span class="o__big o__big--store" aria-hidden="true"><span class="o__media o__media--${o.sd ? 'sd' : 'hdd'}">${`<img src="assets/icons/${o.sd ? 'sd' : 'hdd'}.webp" alt="">`.repeat(pics)}</span><span class="o__days">${L('хранить', 'сақтайды')}<b>${r.num}</b>${r.unit}</span></span>`
+            + (o.sd ? `<b>${L(`Карта памяти ${PRICE.sd.gb} ГБ`, `${PRICE.sd.gb} ГБ жад картасы`)}</b><small>${L('В каждой камере, без регистратора', 'Әр камераның ішінде, регистраторсыз')}</small>`
+              : `<b>${diskLabel(o)}</b><small>${L(`В регистраторе, на ${n} ${plural(n, 'камеру', 'камеры', 'камер')}`, `Регистраторда, ${n} камераға`)}</small>`),
         };
       });
     },
@@ -74,7 +74,7 @@ const STEPS = [
       options: () => [
         ['yes', 'wifi', state.plan === 'business' ? 'На объекте есть интернет' : 'В доме есть интернет', 'Камеры можно смотреть с телефона откуда угодно'],
         ['no', 'wifi-off', 'Нет интернета', 'Запись сохраняется, смотреть — на месте'],
-      ].map(([v, ic, t, d]) => ({ v, on: state.net === v, html: `${netIcon(ic)}<b>${t}</b><small>${d}</small>` })),
+      ].map(([v, ic, tt, d]) => ({ v, on: state.net === v, html: `${netIcon(ic)}<b>${t(tt)}</b><small>${t(d)}</small>` })),
       isSet: () => state.net !== null,
       pick: (v) => (state.net = v),
     },
@@ -98,13 +98,13 @@ function renderStepsBar() {
     const done = i < state.step;
     const reach = i <= state.step || state.picked.slice(0, i).every(Boolean);
     const arrow = i ? `<span class="steps-bar__arrow${done || i === state.step ? ' is-passed' : ''}" aria-hidden="true">${ARROW}</span>` : '';
-    return `${arrow}<button type="button" class="${i === state.step ? 'is-now' : done ? 'is-done' : 'is-later'}" data-step="${i}" ${reach ? '' : 'disabled'} ${i === state.step ? 'aria-current="step"' : ''}><b>${done ? TICK : i + 1}</b><span class="steps-bar__name">${s.name}</span></button>`;
+    return `${arrow}<button type="button" class="${i === state.step ? 'is-now' : done ? 'is-done' : 'is-later'}" data-step="${i}" ${reach ? '' : 'disabled'} ${i === state.step ? 'aria-current="step"' : ''}><b>${done ? TICK : i + 1}</b><span class="steps-bar__name">${t(s.name)}</span></button>`;
   }).join('');
 }
 
 function renderStep(animate) {
   const s = STEPS[state.step];
-  $('#q').textContent = s.q;
+  $('#q').textContent = t(s.q);
   renderStepsBar();
   const body = $('#stepBody');
 
@@ -115,9 +115,9 @@ function renderStep(animate) {
     const group = (g, id) => {
       const set = g.isSet ? g.isSet() : state.picked[state.step];
       return `<div class="choices${id === 'more' ? ' choices--more' : ''}" data-group="${id}">${g.options().map((o) =>
-        `<button type="button" class="o" data-v="${o.v}" aria-pressed="${set && o.on}"><span class="o__ribbon">✓ Выбрано</span><span class="o__check"></span>${o.html}</button>`).join('')}</div>`;
+        `<button type="button" class="o" data-v="${o.v}" aria-pressed="${set && o.on}"><span class="o__ribbon">✓ ${L('Выбрано', 'Таңдалды')}</span><span class="o__check"></span>${o.html}</button>`).join('')}</div>`;
     };
-    body.innerHTML = group(s, 'main') + (s.more ? `<h3 class="q q--sub">${s.more.q}</h3>${group(s.more, 'more')}` : '');
+    body.innerHTML = group(s, 'main') + (s.more ? `<h3 class="q q--sub">${t(s.more.q)}</h3>${group(s.more, 'more')}` : '');
   }
 
   // подсказка у вопроса — только на первом шаге, пока объект не выбран; дальше уже понятно, что карточки нажимаются
@@ -159,7 +159,7 @@ function wobble(k, el) {
   const c = Scheme3D.stage(k).controls, t0 = performance.now(), dur = 3200;
   const tip = document.createElement('div');
   tip.className = 'sch__hint';
-  tip.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg>${touch.matches ? 'Схему можно вращать пальцем и приближать двумя' : 'Схему можно вращать мышью и приближать'}`;
+  tip.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg>${touch.matches ? L('Схему можно вращать пальцем и приближать двумя', 'Схеманы саусақпен айналдырып, екі саусақпен жақындатуға болады') : L('Схему можно вращать мышью и приближать', 'Схеманы тышқанмен айналдырып, жақындатуға болады')}`;
   el.append(tip);
   requestAnimationFrame(() => tip.classList.add('is-on'));
   const done = () => { c.autoRotate = false; tip.classList.remove('is-on'); setTimeout(() => tip.remove(), 400); };
@@ -272,24 +272,24 @@ function renderZones() {
   const p = PLANS[state.plan], c = counts(state);
   const n = { out: c.out, in: c.inn };
   return `<div class="cnt">${['out', 'in'].map((zone) => {
-    const z = p.zones[zone], k = n[zone], name = z.t.toLowerCase();
+    const z = p.zones[zone], k = n[zone], name = t(z.t).toLowerCase();
     return `
     <div class="cnt__card${k ? ' is-on' : ''}" data-zone="${zone}">
       <div class="cnt__photo" aria-hidden="true"><img src="assets/photos/${z.photo}.webp" alt="" style="${photoStyle(z)}"></div>
       <div class="cnt__main">
         <span class="cnt__cam" aria-hidden="true">${CAM_IMG}</span>
-        <b class="cnt__t" id="zone-${zone}">${z.t}</b>
-        <span class="cnt__d">${z.d}</span>
+        <b class="cnt__t" id="zone-${zone}">${t(z.t)}</b>
+        <span class="cnt__d">${t(z.d)}</span>
       </div>
       <div class="cnt__row" aria-hidden="true">${CAM_IMG.repeat(k)}</div>
       <div class="cnt__ctl" role="group" aria-labelledby="zone-${zone}">
-        <button type="button" data-zone="${zone}" data-d="-1" aria-label="Убрать камеру ${name}"${k ? '' : ' disabled'}>−</button>
+        <button type="button" data-zone="${zone}" data-d="-1" aria-label="${L(`Убрать камеру ${name}`, `Камераны азайту: ${name}`)}"${k ? '' : ' disabled'}>−</button>
         <output class="cnt__n" aria-live="polite"><span>${k}</span><small>${plural(k, 'камера', 'камеры', 'камер')}</small></output>
-        <button type="button" data-zone="${zone}" data-d="1" aria-label="Добавить камеру ${name}"${k >= PRICE.maxPerZone ? ' aria-disabled="true"' : ''}>+</button>
+        <button type="button" data-zone="${zone}" data-d="1" aria-label="${L(`Добавить камеру ${name}`, `Камера қосу: ${name}`)}"${k >= PRICE.maxPerZone ? ' aria-disabled="true"' : ''}>+</button>
       </div>
     </div>`;
   }).join('')}</div>
-  <div class="cnt-sum">${CAM_IMG}<span>Всего: ${camsWord(c.total)}</span></div>`;
+  <div class="cnt-sum">${CAM_IMG}<span>${L('Всего', 'Барлығы')}: ${camsWord(c.total)}</span></div>`;
 }
 
 // ---------- схема ----------
@@ -302,8 +302,8 @@ function renderScheme() {
   const sc = SCENES[state.plan], c = counts(state);
   const pane = (k, n) => `
     <section class="sch__pane">
-      <div class="sch__head">${sc[k].title}<span class="sch__chip">${camsWord(n)}</span></div>
-      <div class="sch__stage" id="sch-${k}" data-fit="${c.out && c.inn ? 0.92 : 0.94}" data-zoom="${c.out && c.inn ? 1.1 : 1.4}"><p class="sch__wait">Загружаем схему…</p></div>
+      <div class="sch__head">${t(sc[k].title)}<span class="sch__chip">${camsWord(n)}</span></div>
+      <div class="sch__stage" id="sch-${k}" data-fit="${c.out && c.inn ? 0.92 : 0.94}" data-zoom="${c.out && c.inn ? 1.1 : 1.4}"><p class="sch__wait">${t('Загружаем схему…')}</p></div>
     </section>`;
   // зона без камер не рисуется: одна схема — на всю ширину; две — крупнее и ближе (data-fit → поля вокруг сцены в scheme3d.js)
   const panes = [['out', c.out], ['in', c.inn]].filter(([, n]) => n > 0).map(([k, n]) => pane(k, n));
@@ -363,16 +363,16 @@ function renderAddons() {
     <button type="button" class="ad" data-addon="${a.id}" aria-pressed="${on.has(a.id)}">
       <span class="ad__pic" aria-hidden="true">
         <span class="ad__frame">${a.ba
-          ? a.ba.map((f, i) => `<span class="ad__half ad__half--${i ? 'b' : 'a'}">${addImg(f)}<span class="ad__lbl">${f.l}</span></span>`).join('')
+          ? a.ba.map((f, i) => `<span class="ad__half ad__half--${i ? 'b' : 'a'}">${addImg(f)}<span class="ad__lbl">${t(f.l)}</span></span>`).join('')
           : addImg(a)}${a.wave ? WAVE : ''}</span>
         <span class="ad__badge">${addIcon(a.id)}</span>
       </span>
-      <b class="ad__t">${a.t}</b>
-      <small class="ad__d">${a.d}</small>
+      <b class="ad__t">${t(a.t)}</b>
+      <small class="ad__d">${t(a.d)}</small>
       <span class="ad__tg" aria-hidden="true"></span>
     </button>`;
-  return `<h2 class="adds__t" id="addsT">Дополнительно</h2>
-    ${ADDONS.map((g) => `<h3 class="adds__g">${g.g}</h3><div class="adds__grid">${g.items.map(card).join('')}</div>`).join('')}`;
+  return `<h2 class="adds__t" id="addsT">${t('Дополнительно')}</h2>
+    ${ADDONS.map((g) => `<h3 class="adds__g">${t(g.g)}</h3><div class="adds__grid">${g.items.map(card).join('')}</div>`).join('')}`;
 }
 
 $('#adds').addEventListener('click', (e) => {
@@ -391,7 +391,8 @@ const tooMany = (s) => { const c = counts(s); return c.out > PRICE.maxPerZone ||
 
 function canAdd(zone) {
   if (!zoneFull(state, zone)) return true;
-  toast(`Больше ${PRICE.maxPerZone} камер ${zone === 'out' ? 'снаружи' : 'внутри'} посчитаем отдельно — напишите нам`);
+  toast(L(`Больше ${PRICE.maxPerZone} камер ${zone === 'out' ? 'снаружи' : 'внутри'} посчитаем отдельно — напишите нам`,
+    `${zone === 'out' ? 'Сыртқа' : 'Ішке'} ${PRICE.maxPerZone}-дан көп камераны бөлек есептейміз — бізге жазыңыз`));
   return false;
 }
 
@@ -416,10 +417,10 @@ let partsOpen = false;
 const CHEVRON = '<svg class="ln__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
 const qtyFmt = (q) => String(Math.round(q * 10) / 10).replace('.', ',');
 function partsHtml(l, pic) {
-  const rows = l.parts.map((p) => `<li><span>${p.name}</span><span class="ln__pq">${qtyFmt(p.qty)} ${p.unit}${hasPrice(p.price) ? ` × ${fmt(p.price)}` : ''}</span><b>${hasPrice(p.price) ? fmt(p.sum) : 'без цены'}</b></li>`).join('');
+  const rows = l.parts.map((p) => `<li><span>${p.name}</span><span class="ln__pq">${qtyFmt(p.qty)} ${p.unit}${hasPrice(p.price) ? ` × ${fmt(p.price)}` : ''}</span><b>${hasPrice(p.price) ? fmt(p.sum) : t('без цены')}</b></li>`).join('');
   return `<details class="ln-d"${partsOpen ? ' open' : ''}><summary class="ln ln--ic ln--one">${pic}<span class="ln__name">${l.name}</span>`
     + `<span class="ln__sum ln__sum--x">${l.price === undefined ? '' : fmt(l.sum)}${CHEVRON}</span></summary>`
-    + `<ul class="ln__parts">${rows}<li class="ln__ptot"><span>Всего</span><b>${l.partial ? 'от ' : ''}${fmt(l.sum)}</b></li></ul></details>`;
+    + `<ul class="ln__parts">${rows}<li class="ln__ptot"><span>${t('Всего')}</span><b>${l.partial ? `${t('от')} ` : ''}${fmt(l.sum)}</b></li></ul></details>`;
 }
 
 // у строк на всех шагах — иконки в белом круге (нет иконки — пустой круг, картинку загрузим позже)
@@ -428,9 +429,9 @@ function lineHtml(l, per) {
   if (l.parts) return partsHtml(l, pic);
   const qty = l.qty === undefined ? '' : `<span class="ln__qty">${l.qty} ${l.unit}${l.price && l.qty > 1 ? ` × ${fmt(l.price)}` : ''}</span>`;
   if (l.price === undefined) return `<div class="ln ln--ic${qty ? '' : ' ln--one'}">${pic}<span class="ln__name">${l.name}</span>${qty}</div>`; // состав без цены (шаг «Камеры»)
-  if (l.included) return `<div class="ln ln--ic">${pic}<span class="ln__name">${l.name}</span>${qty}<span class="ln__sum ln__sum--ask">в комплекте</span></div>`;
-  if (l.price === null) return `<div class="ln ln--ic">${pic}<span class="ln__name">${l.name}</span><span class="ln__qty">уточним на осмотре</span><span class="ln__sum ln__sum--ask">по запросу</span></div>`;
-  return `<div class="ln ln--ic${qty ? '' : ' ln--one'}">${pic}<span class="ln__name">${l.name}</span>${qty}<span class="ln__sum">${l.from ? 'от ' : ''}${fmt(l.sum)}${per ? `<small>${per}</small>` : ''}</span></div>`;
+  if (l.included) return `<div class="ln ln--ic">${pic}<span class="ln__name">${l.name}</span>${qty}<span class="ln__sum ln__sum--ask">${t('в комплекте')}</span></div>`;
+  if (l.price === null) return `<div class="ln ln--ic">${pic}<span class="ln__name">${l.name}</span><span class="ln__qty">${t('уточним на осмотре')}</span><span class="ln__sum ln__sum--ask">${t('по запросу')}</span></div>`;
+  return `<div class="ln ln--ic${qty ? '' : ' ln--one'}">${pic}<span class="ln__name">${l.name}</span>${qty}<span class="ln__sum">${l.from ? `${t('от')} ` : ''}${fmt(l.sum)}${per ? `<small>${per}</small>` : ''}</span></div>`;
 }
 
 // после изменения камер выбранный носитель может пропасть из вариантов (SD при 5 камерах) — тогда выбор снимаем
@@ -452,19 +453,20 @@ function renderSmeta() {
   const inst = PRICE.install;
   const n = per ? 1 : e.c.total;
   $('#lines').innerHTML = per
-    ? lineHtml({ name: 'Установка 1 камеры', price: inst.price, sum: inst.price, ic: 'tools' })
+    ? lineHtml({ name: t('Установка 1 камеры'), price: inst.price, sum: inst.price, ic: 'tools' })
     : !n
-      ? `<p class="smeta__empty">Камер пока нет — добавьте их на шаге «Камеры».</p>`
+      ? `<p class="smeta__empty">${t('Камер пока нет — добавьте их на шаге «Камеры».')}</p>`
       : [...e.eq, ...e.work].map((l) => lineHtml(l)).join('')
-        + (e.extra.length ? `<div class="smeta__sub">Дополнительно</div>${e.extra.map((l) => lineHtml(l)).join('')}` : '');
-  from = n && (per || e.draft) ? 'от ' : ''; // есть позиции без цены — итог «от»
+        + (e.extra.length ? `<div class="smeta__sub">${t('Дополнительно')}</div>${e.extra.map((l) => lineHtml(l)).join('')}` : '');
+  from = n && (per || e.draft) ? `${t('от')} ` : ''; // есть позиции без цены — итог «от»
   $('#from').hidden = !from;
-  $('#totalT').textContent = from ? 'Итого' : 'Итого под ключ';
+  $('#from').textContent = t('от');
+  $('#totalT').textContent = t(from ? 'Итого' : 'Итого под ключ');
   $('#note').hidden = !last; // «Цена примерная.» — только на шаге «Схема»
   animateTotal(!n ? 0 : per ? inst.price : e.total);
 
   $('#monthly').hidden = early || !(n && e.monthly.length);
-  $('#monthly').innerHTML = `<div class="smeta__sub">Ежемесячно</div>${e.monthly.map((l) => lineHtml(l, 'в месяц')).join('')}<p class="smeta__mnote">Без покупки — только абонплата, в итог не входит</p>`;
+  $('#monthly').innerHTML = `<div class="smeta__sub">${t('Ежемесячно')}</div>${e.monthly.map((l) => lineHtml(l, t('в месяц'))).join('')}<p class="smeta__mnote">${t('Без покупки — только абонплата, в итог не входит')}</p>`;
 
   // кнопки — только на шаге «Схема»
   $('#acts').hidden = !(last && e.c.total);
@@ -474,29 +476,29 @@ function renderSmeta() {
   save(); // смета перерисовывается после любого изменения — тут же и сохраняем
 }
 
-// коротко о расчёте — для WhatsApp и заметки в CRM
+// коротко о расчёте — для WhatsApp (на языке страницы) и заметки в CRM (по-русски, inRu)
 function summary(e) {
   const obj = OBJECTS.find((o) => o.plan === state.plan);
   return [
-    `Объект: ${obj ? obj.t.toLowerCase() : PLANS[state.plan].tab}`,
-    `Камер: ${e.c.total} (снаружи ${e.c.out}, внутри ${e.c.inn})`,
-    e.store ? `Запись: ${storeLabel(e.store)}, примерно ${daysRange(storeDays(e.store, e.c.total)).text}` : 'Запись: не выбрана',
-    `Кабель: ~${state.cable} м на камеру`,
-    state.net ? `Интернет на объекте: ${state.net === 'yes' ? 'есть' : 'нет'}` : '',
-    e.extra.length ? `Дополнительно: ${e.extra.map((l) => l.name + (l.price === null ? ' (по запросу)' : '')).join(', ')}` : '',
-    e.eq.some((l) => l.price === undefined) ? `Без цены: ${e.eq.filter((l) => l.price === undefined).map((l) => (l.qty ? `${l.name} — ${l.qty} ${l.unit}` : l.name)).join(', ')}` : '',
-    `Предварительно: ${e.draft ? 'от ' : ''}${fmt(e.total)}`,
-    ...e.monthly.map((l) => `Ежемесячно: ${l.name} — ${fmt(l.price)} в месяц`),
+    `${L('Объект', 'Нысан')}: ${obj ? t(obj.t).toLowerCase() : t(PLANS[state.plan].tab)}`,
+    L(`Камер: ${e.c.total} (снаружи ${e.c.out}, внутри ${e.c.inn})`, `Камера: ${e.c.total} (сыртта ${e.c.out}, ішінде ${e.c.inn})`),
+    e.store ? L(`Запись: ${storeLabel(e.store)}, примерно ${daysRange(storeDays(e.store, e.c.total)).text}`, `Жазба: ${storeLabel(e.store)}, шамамен ${daysRange(storeDays(e.store, e.c.total)).text}`) : L('Запись: не выбрана', 'Жазба: таңдалмаған'),
+    L(`Кабель: ~${state.cable} м на камеру`, `Кабель: әр камераға ~${state.cable} м`),
+    state.net ? L(`Интернет на объекте: ${state.net === 'yes' ? 'есть' : 'нет'}`, `Нысанда интернет: ${state.net === 'yes' ? 'бар' : 'жоқ'}`) : '',
+    e.extra.length ? `${t('Дополнительно')}: ${e.extra.map((l) => l.name + (l.price === null ? ` (${t('по запросу')})` : '')).join(', ')}` : '',
+    e.eq.some((l) => l.price === undefined) ? `${L('Без цены', 'Бағасы жоқ')}: ${e.eq.filter((l) => l.price === undefined).map((l) => (l.qty ? `${l.name} — ${l.qty} ${l.unit}` : l.name)).join(', ')}` : '',
+    `${L('Предварительно', 'Алдын ала')}: ${e.draft ? `${t('от')} ` : ''}${fmt(e.total)}`,
+    ...e.monthly.map((l) => `${t('Ежемесячно')}: ${l.name} — ${L(`${fmt(l.price)} в месяц`, `айына ${fmt(l.price)}`)}`),
   ].filter(Boolean);
 }
 
 function waLink(e, phone = WA_PHONE) {
-  if (!e.c.total) return `https://wa.me/${phone}?text=${encodeURIComponent('Здравствуйте! Хочу поставить видеонаблюдение.')}`;
+  if (!e.c.total) return `https://wa.me/${phone}?text=${encodeURIComponent(L('Здравствуйте! Хочу поставить видеонаблюдение.', 'Сәлеметсіз бе! Бейнебақылау орнатқым келеді.'))}`;
   const text = [
-    'Здравствуйте! Посчитал(а) на сайте видеонаблюдение.',
+    L('Здравствуйте! Посчитал(а) на сайте видеонаблюдение.', 'Сәлеметсіз бе! Сайттан бейнебақылауды есептеп көрдім.'),
     ...summary(e),
-    location.protocol.startsWith('http') ? `Схема: ${shareUrl()}` : '',
-    'Хочу точный расчёт.',
+    location.protocol.startsWith('http') ? `${t('Схема')}: ${shareUrl()}` : '',
+    L('Хочу точный расчёт.', 'Нақты есебін білгім келеді.'),
   ].filter(Boolean).join('\n');
   return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
 }
@@ -519,12 +521,16 @@ $('#lead').addEventListener('submit', async (ev) => {
   ev.preventDefault();
   const msg = $('#leadMsg'), btn = $('#leadSend');
   const d = phoneDigits($('#leadPhone').value);
-  if (!d) { msg.className = 'lead__msg is-bad'; msg.textContent = 'Проверьте номер: 10 цифр после +7'; return; }
-  const e = estimate(state);
+  if (!d) { msg.className = 'lead__msg is-bad'; msg.textContent = L('Проверьте номер: 10 цифр после +7', 'Нөмірді тексеріңіз: +7-ден кейін 10 сан'); return; }
+  // заявка в CRM — по-русски, на каком бы языке ни был сайт
   const obj = OBJECTS.find((o) => o.plan === state.plan);
+  const { e, note, title } = inRu(() => {
+    const e = estimate(state);
+    return { e, note: summary(e).join('. '), title: `Расчёт с сайта: ${obj.t.toLowerCase()}, ${camsWord(e.c.total)}` };
+  });
   btn.disabled = true;
   msg.className = 'lead__msg';
-  msg.textContent = 'Отправляем…';
+  msg.textContent = L('Отправляем…', 'Жіберіп жатырмыз…');
   try {
     const r = await fetch(`${CRM.url}/rest/v1/rpc/site_lead`, {
       method: 'POST',
@@ -533,24 +539,24 @@ $('#lead').addEventListener('submit', async (ev) => {
         p_phone: '+7' + d,
         p_payload: {
           type: { home: 'house', flats: 'apartment', business: 'business' }[state.plan],
-          title: `Расчёт с сайта: ${obj.t.toLowerCase()}, ${camsWord(e.c.total)}`,
+          title,
           total: e.total,
           // в CRM — только позиции с ценой (без цены — «по запросу» и пока не заданные цены частного дома)
           lines: [...e.eq, ...e.work, ...e.extra].filter((l) => l.price != null).map(({ name, qty, unit, price }) => ({ name, qty, unit, price })),
-          note: summary(e).join('. '),
+          note,
         },
       }),
     });
     if (!r.ok) throw new Error(r.status);
     const res = await r.json();
     msg.className = 'lead__msg is-ok';
-    msg.textContent = `Заявка${res.number ? ` №${res.number}` : ''} отправлена — перезвоним в ближайшее время.`;
+    msg.textContent = L(`Заявка${res.number ? ` №${res.number}` : ''} отправлена — перезвоним в ближайшее время.`, `Өтінім${res.number ? ` №${res.number}` : ''} жіберілді — жақын арада хабарласамыз.`);
     $('#leadPhone').disabled = true;
     btn.hidden = true;
   } catch (_) {
     btn.disabled = false;
     msg.className = 'lead__msg is-bad';
-    msg.textContent = 'Не получилось отправить. Напишите монтажнику в WhatsApp — кнопка ниже.';
+    msg.textContent = L('Не получилось отправить. Напишите монтажнику в WhatsApp — кнопка ниже.', 'Жіберілмей қалды. Шеберге WhatsApp-қа жазыңыз — батырма төменде.');
   }
 });
 
@@ -561,14 +567,14 @@ $('#pdf').addEventListener('click', async () => {
   if (b.classList.contains('is-busy')) return;
   b.classList.add('is-busy');
   const label = b.lastChild.textContent;
-  b.lastChild.textContent = 'Готовим PDF…';
+  b.lastChild.textContent = L('Готовим PDF…', 'PDF дайындап жатырмыз…');
   try {
     const { downloadPdf } = await import('./pdf.js');
     const e = estimate(state);
-    await downloadPdf({ e, plan: state.plan, obj: OBJECTS.find((o) => o.plan === state.plan).t, scene: SCENES[state.plan] });
+    await downloadPdf({ e, plan: state.plan, obj: t(OBJECTS.find((o) => o.plan === state.plan).t), scene: SCENES[state.plan] });
   } catch (err) {
     console.error(err);
-    toast('Не получилось собрать PDF — попробуйте ещё раз');
+    toast(L('Не получилось собрать PDF — попробуйте ещё раз', 'PDF жасалмай қалды — тағы бір рет көріңіз'));
   }
   b.lastChild.textContent = label;
   b.classList.remove('is-busy');
@@ -703,3 +709,10 @@ applyUrl() || load();
 renderStep();
 renderSmeta();
 schemeHint();
+
+// сменили язык — перерисовать шаг и смету (вёрстку переводит i18n.js)
+addEventListener('langchange', () => {
+  renderStep();
+  renderSmeta();
+  topPrice();
+});

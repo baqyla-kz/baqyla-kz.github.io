@@ -4,8 +4,9 @@
 // и складываются в PDF (jsPDF); обе библиотеки грузятся по нажатию.
 
 const W = 794, H = 1123, SCALE = 2.5; // A4 в CSS-пикселях
-const CITY = 'г. Уральск';
-const FOOT = ['BAQYLA · проектирование, установка, сервис', '+7 778 794 37 60 · +7 708 980 42 60 · @baqyla.security.07'];
+// тексты — на языке страницы (i18n.js): PDF собирается в момент нажатия
+const CITY = () => t('г. Уральск');
+const FOOT = () => [L('BAQYLA · проектирование, установка, сервис', 'BAQYLA · жобалау, орнату, қызмет көрсету'), '+7 778 794 37 60 · +7 708 980 42 60 · @baqyla.security.07'];
 
 const load = (src) => new Promise((ok, fail) => {
   const s = Object.assign(document.createElement('script'), { src, onload: ok, onerror: fail });
@@ -18,7 +19,7 @@ async function libs() {
   if (!document.querySelector('link[data-onest]')) {
     document.head.insertAdjacentHTML('beforeend', '<link data-onest rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@500;600;700;800&display=swap">');
   }
-  await Promise.all(['500 16px Onest', '700 16px Onest', '800 16px Onest'].map((f) => document.fonts.load(f, 'Смета 0123')));
+  await Promise.all(['500 16px Onest', '700 16px Onest', '800 16px Onest'].map((f) => document.fonts.load(f, 'Смета 0123 қәң')));
 }
 
 // шрифт Onest для картинки страницы: CSS Google Fonts + сами файлы → data: URL (кириллица, латиница, ₸)
@@ -26,7 +27,7 @@ let onest;
 async function onestCss() {
   if (onest) return onest;
   const css = await (await fetch('https://fonts.googleapis.com/css2?family=Onest:wght@500;600;700;800&display=swap')).text();
-  const keep = css.match(/\/\* (cyrillic|latin-ext|latin) \*\/\s*@font-face\s*{[^}]*}/g) || [];
+  const keep = css.match(/\/\* (cyrillic-ext|cyrillic|latin-ext|latin) \*\/\s*@font-face\s*{[^}]*}/g) || [];
   const cache = {};
   const toData = async (url) => (cache[url] ||= fetch(url).then((r) => r.blob()).then((b) => new Promise((ok) => {
     const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(b);
@@ -116,11 +117,11 @@ function header(title, sub, chips) {
 // «Дополнительно»: значок — контур из app.js (addIcon), без цены — «по запросу»
 function row(l, per) {
   const ask = l.price === null, none = l.price === undefined; // none — цена ещё не задана (HOME / FLATS / BIZ в data.js)
-  const qty = ask ? 'уточним на осмотре' : l.qty === undefined ? '' : `${l.qty} ${l.unit}${l.price && l.qty > 1 ? ` × ${fmt(l.price)}` : ''}`;
+  const qty = ask ? t('уточним на осмотре') : l.qty === undefined ? '' : `${l.qty} ${l.unit}${l.price && l.qty > 1 ? ` × ${fmt(l.price)}` : ''}`;
   const ic = l.addon && !l.ic ? addIcon(l.addon).replace('<svg', '<svg style="width:26px;height:26px;fill:none;stroke:#1E6BE0;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round"') : l.ic ? `<img src="assets/icons/${l.ic}.webp" alt="">` : '';
   return `<div class="row"><span class="ic">${ic}</span>
-    <div class="row__t"><b>${esc(l.name)}</b><div class="row__chips"><span class="q">${qty}</span>${per ? '<span class="q">без покупки · только абонплата</span>' : ''}</div></div>
-    <div class="row__p">${ask ? 'по запросу' : l.included ? 'в комплекте' : none ? '' : (l.from ? 'от ' : '') + fmt(per ? l.price : l.sum)}${per ? '<small>в месяц</small>' : ''}</div></div>`;
+    <div class="row__t"><b>${esc(l.name)}</b><div class="row__chips"><span class="q">${qty}</span>${per ? `<span class="q">${L('без покупки · только абонплата', 'сатып алмайсыз · тек абоненттік төлем')}</span>` : ''}</div></div>
+    <div class="row__p">${ask ? t('по запросу') : l.included ? t('в комплекте') : none ? '' : (l.from ? `${t('от')} ` : '') + fmt(per ? l.price : l.sum)}${per ? `<small>${t('в месяц')}</small>` : ''}</div></div>`;
 }
 
 // новая страница: фон-чертёж, шапка-полоса; возвращает блок для содержимого
@@ -137,20 +138,20 @@ function smetaPages(host, bg, ctx, sub) {
   const { e } = ctx;
   const n = e.eq.length + e.work.length;
   const blocks = [
-    '<div class="sec">Оборудование и работы</div>',
+    `<div class="sec">${L('Оборудование и работы', 'Жабдық және жұмыс')}</div>`,
     ...[...e.eq, ...e.work].map((l) => row(l)),
     // опции с ценой входят в итог — поэтому раздел до строки «Итого»
-    ...(e.extra.length ? [`<div class="grp"><div class="sec">Дополнительно</div>${e.extra.map((l) => row(l)).join('')}</div>`] : []),
-    `<div class="tot"><div><small>ИТОГО ПО СМЕТЕ · РАЗОВО</small><b>${e.draft ? 'от ' : ''}${fmt(e.total)}</b></div><span>${n} ${plural(n, 'позиция', 'позиции', 'позиций')}</span></div>`,
+    ...(e.extra.length ? [`<div class="grp"><div class="sec">${t('Дополнительно')}</div>${e.extra.map((l) => row(l)).join('')}</div>`] : []),
+    `<div class="tot"><div><small>${L('ИТОГО ПО СМЕТЕ · РАЗОВО', 'СМЕТА БОЙЫНША БАРЛЫҒЫ · БІР РЕТ')}</small><b>${e.draft ? `${t('от')} ` : ''}${fmt(e.total)}</b></div><span>${n} ${plural(n, 'позиция', 'позиции', 'позиций')}</span></div>`,
     // раздел целиком — заголовок не отрывается от строк
-    ...(e.monthly.length ? [`<div class="grp"><div class="sec">Ежемесячно</div>${e.monthly.map((l) => row(l, true)).join('')}</div>`] : []),
+    ...(e.monthly.length ? [`<div class="grp"><div class="sec">${t('Ежемесячно')}</div>${e.monthly.map((l) => row(l, true)).join('')}</div>`] : []),
   ];
   const pages = [];
   let pg, body;
   const open = () => {
-    pg = page(host, bg, header('Смета', sub, [[CITY, 'glass'], [today(), 'white']]));
+    pg = page(host, bg, header('Смета', sub, [[CITY(), 'glass'], [today(), 'white']]));
     body = pg.querySelector('.body');
-    if (!pages.length) pg.querySelector('.pg__in').insertAdjacentHTML('beforeend', `<div class="ft"><span>${FOOT[0]}</span><span>${FOOT[1]}</span></div>`);
+    if (!pages.length) pg.querySelector('.pg__in').insertAdjacentHTML('beforeend', `<div class="ft"><span>${FOOT()[0]}</span><span>${FOOT()[1]}</span></div>`);
     pages.push(pg);
   };
   open();
@@ -162,18 +163,18 @@ function smetaPages(host, bg, ctx, sub) {
       body.insertAdjacentHTML('beforeend', b);
     }
   }
-  if (pages.length > 1) pages.forEach((p, i) => { p.querySelector('.chip--white').textContent = `Лист ${i + 1} из ${pages.length}`; });
+  if (pages.length > 1) pages.forEach((p, i) => { p.querySelector('.chip--white').textContent = L(`Лист ${i + 1} из ${pages.length}`, `${i + 1}/${pages.length} бет`); });
 }
 
 // лист схемы: снаружи и внутри одна под другой, номера и подписи — внутри чертежа
 function schemePage(host, bg, ctx, sub, mode, sheet) {
-  const pg = page(host, bg, header('Схема установки', sub, [[CITY, 'glass'], [`Лист ${sheet} из 2 · ${mode.toUpperCase()}`, 'white']]));
+  const pg = page(host, bg, header(L('Схема установки', 'Орнату схемасы'), sub, [[CITY(), 'glass'], [`${L(`Лист ${sheet} из 2`, `${sheet}/2 бет`)} · ${mode.toUpperCase()}`, 'white']]));
   const body = pg.querySelector('.body');
   body.outerHTML = '<div class="card"></div>';
   const card = pg.querySelector('.card');
   const c = ctx.e.c;
   const parts = [['out', c.out, 1], ['in', c.inn, c.out + 1]];
-  card.innerHTML = parts.map(([k, n]) => `<div class="scn" data-k="${k}"><div class="scn__t">${esc(ctx.scene[k].title)}<span>${n} ${plural(n, 'камера', 'камеры', 'камер')}</span></div><div class="scn__img"></div></div>`).join('<div class="scn__div"></div>');
+  card.innerHTML = parts.map(([k, n]) => `<div class="scn" data-k="${k}"><div class="scn__t">${esc(t(ctx.scene[k].title))}<span>${n} ${plural(n, 'камера', 'камеры', 'камер')}</span></div><div class="scn__img"></div></div>`).join('<div class="scn__div"></div>');
   for (const [k, n, start] of parts) {
     const box = card.querySelector(`[data-k="${k}"] .scn__img`);
     const w = box.clientWidth, h = box.clientHeight;
@@ -208,7 +209,7 @@ export async function downloadPdf(ctx) {
       if (i) pdf.addPage();
       pdf.addImage(canvas.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, 595.28, 841.89);
     }
-    pdf.save(`Baqyla — расчёт, ${ctx.obj.toLowerCase()}, ${today()}.pdf`);
+    pdf.save(`Baqyla — ${L('расчёт', 'есеп')}, ${ctx.obj.toLowerCase()}, ${today()}.pdf`);
   } finally {
     host.remove();
   }

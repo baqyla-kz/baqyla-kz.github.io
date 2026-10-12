@@ -95,7 +95,7 @@ class Stage {
     // на телефоне вертикальный свайп листает страницу, горизонтальный — вращает, двумя пальцами — приблизить и сдвинуть
     this.renderer.domElement.style.touchAction = 'pan-y';
     this.zoomUi = Object.assign(document.createElement('div'), { className: 'sch__zoom' });
-    this.zoomUi.innerHTML = '<button type="button" data-z="1.4" aria-label="Приблизить">+</button><button type="button" data-z="0.7" aria-label="Отдалить">−</button><button type="button" data-z="0" aria-label="Вернуть вид">↺</button>';
+    this.zoomUi.innerHTML = '<button type="button" data-z="1.4">+</button><button type="button" data-z="0.7">−</button><button type="button" data-z="0">↺</button>';
     this.zoomUi.addEventListener('click', (e) => {
       const b = e.target.closest('button');
       if (b) this.zoomBy(+b.dataset.z);
@@ -111,12 +111,14 @@ class Stage {
   attach(el) {
     if (this.el) this.ro.unobserve(this.el);
     this.el = el;
+    // подписи кнопок — на языке страницы (i18n.js)
+    ['Приблизить', 'Отдалить', 'Вернуть вид'].forEach((l, i) => this.zoomUi.children[i].setAttribute('aria-label', t(l)));
     el.append(this.renderer.domElement, this.ov, this.zoomUi);
     this.ro.observe(el);
   }
 
   build(spec, n, startNo, mode) {
-    this.key = [spec.title, n, startNo, mode].join('|');
+    this.key = sceneKey(spec, n, startNo, mode);
     this.group.clear();
     this.ov.innerHTML = '';
     this.marks = [];
@@ -167,7 +169,7 @@ class Stage {
       this.group.add(body);
       this.marks.push({ kind: 'b', text: startNo + i, size: Math.round(18 + 10 * sz), hidden: c.hidden, p: V(c.x, c.y, c.z + 0.35) });
     });
-    for (const l of spec.labels || []) this.marks.push({ kind: 'l', text: l.t, p: V(l.x, l.y, l.z + 0.1) });
+    for (const l of spec.labels || []) this.marks.push({ kind: 'l', text: t(l.t), p: V(l.x, l.y, l.z + 0.1) });
     for (const m of this.marks) {
       m.el = document.createElement('div');
       m.el.className = m.kind === 'b' ? `sch__b${m.hidden && mode === '3d' ? ' is-hid' : ''}` : 'sch__l'; // за домом — бледнее
@@ -175,7 +177,7 @@ class Stage {
       if (m.size) Object.assign(m.el.style, { width: m.size + 'px', height: m.size + 'px', fontSize: Math.round(m.size * 0.5) + 'px' });
       this.ov.appendChild(m.el);
     }
-    if (!n) this.ov.insertAdjacentHTML('beforeend', '<div class="sch__empty">Камер здесь нет</div>');
+    if (!n) this.ov.insertAdjacentHTML('beforeend', `<div class="sch__empty">${t('Камер здесь нет')}</div>`);
 
     // рамка и свет под размер сцены
     const bb = new THREE.Box3().setFromObject(this.group);
@@ -289,6 +291,8 @@ class Stage {
 }
 
 const stages = { out: null, in: null };
+// сцена пересобирается, если поменялись камеры, вид или язык подписей
+const sceneKey = (spec, n, startNo, mode) => [spec.title, n, startNo, mode, I18N.lang].join('|');
 const get = (k) => (stages[k] ||= new Stage());
 
 window.Scheme3D = {
@@ -297,13 +301,13 @@ window.Scheme3D = {
   draw(k, el, spec, n, startNo, mode) {
     const s = get(k);
     s.attach(el);
-    if (s.key !== [spec.title, n, startNo, mode].join('|')) s.build(spec, n, startNo, mode);
+    if (s.key !== sceneKey(spec, n, startNo, mode)) s.build(spec, n, startNo, mode);
     else s.fit();
   },
   snapshot(k, spec, n, startNo, mode, w, h) {
     const s = get(k);
     if (!s.el) s.attach(document.createElement('div'));
-    if (!s.key || !s.key.startsWith([spec.title, n, startNo].join('|') + '|')) s.build(spec, n, startNo, mode);
+    if (!s.key || ![sceneKey(spec, n, startNo, '2d'), sceneKey(spec, n, startNo, '3d')].includes(s.key)) s.build(spec, n, startNo, mode);
     return s.snapshot(w, h, mode);
   },
 };

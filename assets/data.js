@@ -177,7 +177,9 @@ const ADDON = Object.fromEntries(ADDONS.flatMap((g) => g.items.map((a) => [a.id,
 
 const fmt = (n) => Math.round(n).toLocaleString('ru-RU').replace(/ /g, ' ') + ' ₸';
 
+// по-казахски после числа форма слова одна: «5 камера»
 function plural(n, one, few, many) {
+  if (I18N.lang === 'kk') return t(one);
   const m10 = n % 10, m100 = n % 100;
   if (m10 === 1 && m100 !== 11) return one;
   if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
@@ -209,7 +211,7 @@ const storeDays = (o, n) => (o.sd ? PRICE.sd.gb : o.tb * o.qty * 1000 / n) / PRI
 // «6–8 дней»: от расчётного (с запасом на движение) до спокойного дня; больше двух месяцев — в месяцах
 function daysRange(d) {
   const lo = Math.max(1, Math.floor(d));
-  if (lo >= 60) return { num: `${Math.floor(lo / 30)}+`, unit: 'мес.', text: `больше ${Math.floor(lo / 30)} мес.` };
+  if (lo >= 60) return { num: `${Math.floor(lo / 30)}+`, unit: L('мес.', 'ай'), text: L(`больше ${Math.floor(lo / 30)} мес.`, `${Math.floor(lo / 30)} айдан көп`) };
   const hi = Math.max(lo + 1, Math.round(d * 1.25));
   const unit = plural(hi, 'день', 'дня', 'дней');
   return { num: `${lo}–${hi}`, unit, text: `${lo}–${hi} ${unit}` };
@@ -229,7 +231,8 @@ function storeOptions(s) {
 // что считаем в смете: выбранный носитель; не выбран (или стал недоступен) — null, носителя в смете нет
 const storeOf = (s) => storeOptions(s).find((o) => o.key === s.store) || null;
 
-const storeLabel = (o) => (o.sd ? `Карта ${PRICE.sd.gb} ГБ в каждой камере` : o.qty > 1 ? `${o.qty} диска по ${o.tb} ТБ` : `Диск ${o.tb} ТБ`);
+const diskLabel = (o) => (o.qty > 1 ? L(`${o.qty} диска по ${o.tb} ТБ`, `${o.tb} ТБ-тан ${o.qty} диск`) : L(`Диск ${o.tb} ТБ`, `${o.tb} ТБ диск`));
+const storeLabel = (o) => (o.sd ? L(`Карта ${PRICE.sd.gb} ГБ в каждой камере`, `Әр камерада ${PRICE.sd.gb} ГБ карта`) : diskLabel(o));
 
 // ---------- смета по объекту (шаги «Камеры», «Запись и интернет», «Схема», PDF, WhatsApp) ----------
 // Ниже — значения по умолчанию частного дома (HOME); многоквартирный (FLATS) и коммерция (BIZ) — их копии, правятся отдельно.
@@ -273,28 +276,28 @@ const hasPrice = (p) => typeof p === 'number';
 // состав «Доп. материалов»: [{ name, qty, unit, price? }]; P — HOME, FLATS или BIZ
 function pathMaterials(P, s, c) {
   const m = P.materials, per = (p) => (p.perCam === 'cable' ? s.cable : p.perCam);
-  const take = (list, cams) => list.map((p) => ({ name: p.name, qty: cams * per(p), unit: p.unit, price: p.price }));
+  const take = (list, cams) => list.map((p) => ({ name: t(p.name), qty: cams * per(p), unit: t(p.unit), price: p.price }));
   return [...take(c.total <= P.wifiMaxCams ? m.wifi : m.poe, c.total), ...take(m.out, c.out)].filter((p) => p.qty > 0);
 }
 
-// строки сметы объекта; без цены — price не задан (undefined), sum 0
+// строки сметы объекта; без цены — price не задан (undefined), sum 0. Названия — уже на языке страницы (t, L)
 function pathLines(P, s, c, store) {
   const eq = [], work = [];
-  const add = (list, name, qty, unit, price, ic) => qty > 0 && list.push({ name, qty, unit, price, sum: hasPrice(price) ? qty * price : 0, ic });
+  const add = (list, name, qty, unit, price, ic) => qty > 0 && list.push({ name: t(name), qty, unit: t(unit), price, sum: hasPrice(price) ? qty * price : 0, ic });
   const wifi = c.total <= P.wifiMaxCams;
   const cam = wifi ? P.camWifi : (s.addons || []).includes('talk') ? P.camTalk : P.cam;
   add(eq, cam.name, c.total, 'шт', cam.price, 'camera');
-  if (wifi) eq.push({ name: P.sd.name, qty: c.total, unit: 'шт', price: 0, sum: 0, included: true, ic: 'sd' }); // в комплекте с камерой
+  if (wifi) eq.push({ name: t(P.sd.name), qty: c.total, unit: t('шт'), price: 0, sum: 0, included: true, ic: 'sd' }); // в комплекте с камерой
   if (!wifi) {
     const ch = NVR_CH.find((n) => n >= c.total) || NVR_CH[NVR_CH.length - 1];
-    add(eq, `${P.nvr.name} ${ch} ${plural(ch, 'канал', 'канала', 'каналов')}`, Math.ceil(c.total / ch), 'шт', P.nvr.prices[ch], 'nvr');
+    add(eq, L(`${P.nvr.name} ${ch} ${plural(ch, 'канал', 'канала', 'каналов')}`, `${ch} арналы ${lc(t(P.nvr.name))}`), Math.ceil(c.total / ch), 'шт', P.nvr.prices[ch], 'nvr');
   }
-  if (store && !store.sd) add(eq, `${P.hdd.name} ${store.tb} ТБ`, store.qty, 'шт', P.hdd.prices[store.tb], 'hdd');
+  if (store && !store.sd) add(eq, L(`${P.hdd.name} ${store.tb} ТБ`, `${store.tb} ТБ ${lc(t(P.hdd.name))}`), store.qty, 'шт', P.hdd.prices[store.tb], 'hdd');
   // «Доп. материалы» — одна строка со стрелкой: внутри состав. Сумма — по позициям с ценой; есть без цены — partial, итог «от»
   const parts = pathMaterials(P, s, c).map((p) => ({ ...p, sum: hasPrice(p.price) ? p.qty * p.price : 0 }));
   const sum = parts.reduce((a, p) => a + p.sum, 0);
   const partial = !parts.every((p) => hasPrice(p.price));
-  if (parts.length) eq.push({ name: 'Доп. материалы', parts, price: sum || !partial ? sum : undefined, sum, partial, ic: 'box' }); // qty нет — одна строка
+  if (parts.length) eq.push({ name: t('Доп. материалы'), parts, price: sum || !partial ? sum : undefined, sum, partial, ic: 'box' }); // qty нет — одна строка
   add(work, PRICE.install.name, c.total, 'шт', PRICE.install.price, 'tools');
   return { eq, work };
 }
@@ -394,12 +397,12 @@ function estimate(s) {
   const inCam = (id) => id === 'talk' && c.total > P.wifiMaxCams;
   const extra = (s.addons || []).filter((id) => ADDON[id] && !inCam(id)).map((id) => {
     const a = ADDON[id], qty = a.per === 'cam' ? c.total : 1;
-    return { name: a.t, qty, unit: 'шт', price: a.price, sum: a.price === null ? 0 : qty * a.price, addon: id, ic: a.ic, from: a.from };
+    return { name: t(a.t), qty, unit: t('шт'), price: a.price, sum: a.price === null ? 0 : qty * a.price, addon: id, ic: a.ic, from: a.from };
   });
 
   const total = [...eq, ...work, ...extra].reduce((a, l) => a + l.sum, 0);
   const monthly = [];
-  if (s.net === 'no') monthly.push({ name: PRICE.router4g.name, qty: 1, unit: 'шт', price: PRICE.router4g.price, sum: PRICE.router4g.price, ic: 'router' });
+  if (s.net === 'no') monthly.push({ name: t(PRICE.router4g.name), qty: 1, unit: t('шт'), price: PRICE.router4g.price, sum: PRICE.router4g.price, ic: 'router' });
   // draft — в смете есть позиции без цены: итог показываем «от …»
   const draft = eq.some((l) => l.price === undefined || l.partial) || extra.some((l) => l.from);
   return { c, eq, work, extra, total, store, monthly, draft };
