@@ -1,11 +1,13 @@
 // Админка (admin.html): настройки расчёта → Supabase, таблица site_settings, ключ SETTINGS_KEY (data.js).
-// Вход — логин и пароль CRM (Supabase Auth, «логин» → логин@team.baqyla.kz); менять может только команда (is_team).
+// Вход — логин и пароль CRM (Supabase Auth, «логин» → логин@team.baqyla.kz), код 2FA — если MFA = true; менять может только тот, у кого право на сайт (is_site_admin).
 // Значения по умолчанию и проверка — в data.js (HOME, FLATS, BIZ, PRICE.install, applySettings, calcSettings), сайт читает то же.
 
 const $ = (s, root = document) => root.querySelector(s);
 const $$ = (s, root = document) => [...root.querySelectorAll(s)];
 const LOGIN_DOMAIN = 'team.baqyla.kz';
-const SESSION = 'baqyla-admin-session';
+const SESSION = 'baqyla-admin-session-v2';
+// 2FA пока выключена: вход по логину и паролю. Включить — true здесь и is_site_admin() с aal2 в site-security.sql
+const MFA = false;
 let session = null, dirty = false;
 
 const fmtDate = (iso) => new Date(iso).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
@@ -16,35 +18,91 @@ function msg(text, kind = '') {
   $('#msg').className = `msg${kind ? ` is-${kind}` : ''}`;
 }
 
-// ---------- вход ----------
+// ---------- вход: пароль → (если MFA) код из приложения ----------
+// Правила записи — в baqyla-crm/supabase/site-security.sql.
+
+const jwtOf = (token) => { try { return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); } catch (_) { return {}; } };
 
 function restoreSession() {
   try {
     const s = JSON.parse(sessionStorage.getItem(SESSION));
-    if (s && s.exp > Date.now() / 1000 + 60) return s;
+    if (s && s.exp > Date.now() / 1000 + 60 && (!MFA || jwtOf(s.token).aal === 'aal2')) return s;
   } catch (_) { /* нет сессии */ }
   return null;
 }
 
-async function signIn(login, password) {
+const auth = (path, token, opt = {}) => fetch(`${CRM.url}/auth/v1/${path}`, {
+  ...opt,
+  headers: { apikey: CRM.key, ...(token && { Authorization: `Bearer ${token}` }), 'Content-Type': 'application/json' },
+});
+const sessionOf = (d, email) => ({ token: d.access_token, email: (d.user && d.user.email) || email, exp: Math.floor(Date.now() / 1000) + (d.expires_in || 3600) });
+
+async function signIn(login, password) { // → вход по паролю, ещё без кода
   const l = login.trim().toLowerCase();
   const email = l.includes('@') ? l : `${l}@${LOGIN_DOMAIN}`;
-  const r = await fetch(`${CRM.url}/auth/v1/token?grant_type=password`, {
-    method: 'POST',
-    headers: { apikey: CRM.key, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  });
+  const r = await auth('token?grant_type=password', null, { method: 'POST', body: JSON.stringify({ email, password }) });
   const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(r.status === 400 ? 'Неверный логин или пароль' : 'Не получилось войти, попробуйте ещё раз');
-  session = { token: d.access_token, email: (d.user && d.user.email) || email, exp: Math.floor(Date.now() / 1000) + (d.expires_in || 3600) };
-  try { sessionStorage.setItem(SESSION, JSON.stringify(session)); } catch (_) { /* приватный режим — до перезагрузки */ }
+  if (!r.ok) throw new Error(r.status === 400 ? 'Неверный логин или пароль' : r.status === 429 ? 'Слишком много попыток — подождите пару минут' : 'Не получилось войти, попробуйте ещё раз');
+  return sessionOf(d, email);
+}
+
+let pending = null; // вход по паролю, ждём код: { token, email, exp, factor }
+
+async function startMfa(s) {
+  // право на сайт — до кода, чтобы не заводить 2FA тем, кому сайт менять нельзя
+  const r = await fetch(`${CRM.url}/rest/v1/rpc/is_site_editor`, { method: 'POST', headers: { apikey: CRM.key, Authorization: `Bearer ${s.token}`, 'Content-Type': 'application/json' }, body: '{}' });
+  if (r.status === 404) throw new Error('В Supabase не выполнен site-security.sql');
+  if (!r.ok) throw new Error('Не получилось войти, попробуйте ещё раз');
+  if (await r.json() !== true) throw new Error('У этого входа нет права менять сайт');
+  if (!MFA) { keep(s); $('#login').hidden = true; return openEditor(); }
+
+  const u = await (await auth('user', s.token)).json().catch(() => ({}));
+  const totp = (u.factors || []).filter((f) => f.factor_type === 'totp');
+  let factor = totp.find((f) => f.status === 'verified');
+  $('#mfaNew').hidden = !!factor;
+  if (!factor) { // первый вход — заводим 2FA: недоделанные попытки убираем, показываем QR
+    for (const f of totp) await auth(`factors/${f.id}`, s.token, { method: 'DELETE' }).catch(() => {});
+    const e = await auth('factors', s.token, { method: 'POST', body: JSON.stringify({ factor_type: 'totp', friendly_name: 'Baqyla', issuer: 'Baqyla' }) });
+    const d = await e.json().catch(() => ({}));
+    if (!e.ok || !d.totp) throw new Error('Не получилось включить 2FA — проверьте в Supabase: Authentication → MFA → TOTP');
+    factor = d;
+    $('#mfaQr').src = d.totp.qr_code;
+    $('#mfaKey').textContent = d.totp.secret;
+  }
+  pending = { ...s, factor: factor.id };
+  $('#login').hidden = true;
+  $('#mfa').hidden = false;
+  $('#mfaMsg').textContent = '';
+  $('#mfaCode').value = '';
+  $('#mfaCode').focus();
+}
+
+async function verifyMfa(code) {
+  const c = await auth(`factors/${pending.factor}/challenge`, pending.token, { method: 'POST', body: '{}' });
+  const ch = await c.json().catch(() => ({}));
+  if (c.status === 401) throw new Error('expired');
+  if (!c.ok) throw new Error(c.status === 429 ? 'Слишком много попыток — подождите пару минут' : 'Не получилось проверить код, попробуйте ещё раз');
+  const v = await auth(`factors/${pending.factor}/verify`, pending.token, { method: 'POST', body: JSON.stringify({ challenge_id: ch.id, code }) });
+  const d = await v.json().catch(() => ({}));
+  if (v.status === 401) throw new Error('expired');
+  if (!v.ok) throw new Error(v.status === 429 ? 'Слишком много попыток — подождите пару минут' : 'Неверный код');
+  keep(sessionOf(d, pending.email));
+  pending = null;
+}
+
+function keep(s) {
+  session = s;
+  try { sessionStorage.setItem(SESSION, JSON.stringify(s)); } catch (_) { /* приватный режим — до перезагрузки */ }
 }
 
 function logout(text) {
+  if (session) auth('logout', session.token, { method: 'POST' }).catch(() => {}); // гасим сессию и на сервере
   session = null;
+  pending = null;
   try { sessionStorage.removeItem(SESSION); } catch (_) { /* */ }
   $('#editor').hidden = true;
   $('#bar').hidden = true;
+  $('#mfa').hidden = true;
   $('#login').hidden = false;
   $('#lgMsg').className = 'msg is-bad';
   $('#lgMsg').textContent = text || '';
@@ -61,10 +119,10 @@ $('#loginForm').addEventListener('submit', async (ev) => {
   $('#lgMsg').className = 'msg';
   $('#lgMsg').textContent = 'Входим…';
   try {
-    await signIn($('#lgUser').value, $('#lgPass').value);
+    const s = await signIn($('#lgUser').value, $('#lgPass').value);
     $('#lgPass').value = '';
     $('#lgMsg').textContent = '';
-    await openEditor();
+    await startMfa(s);
   } catch (err) {
     $('#lgMsg').className = 'msg is-bad';
     $('#lgMsg').textContent = err.message;
@@ -72,6 +130,31 @@ $('#loginForm').addEventListener('submit', async (ev) => {
     $('#lgBtn').disabled = false;
   }
 });
+
+$('#mfaForm').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const code = $('#mfaCode').value.replace(/\D/g, '');
+  if (code.length !== 6) { $('#mfaMsg').className = 'msg is-bad'; $('#mfaMsg').textContent = 'Нужно 6 цифр'; return; }
+  $('#mfaBtn').disabled = true;
+  $('#mfaMsg').className = 'msg';
+  $('#mfaMsg').textContent = 'Проверяем…';
+  try {
+    await verifyMfa(code);
+    $('#mfa').hidden = true;
+    $('#mfaKey').textContent = '';
+    $('#mfaQr').removeAttribute('src');
+    await openEditor();
+  } catch (err) {
+    if (err.message === 'expired') { logout('Вход устарел — войдите снова'); return; }
+    $('#mfaMsg').className = 'msg is-bad';
+    $('#mfaMsg').textContent = err.message;
+    $('#mfaCode').select();
+  } finally {
+    $('#mfaBtn').disabled = false;
+  }
+});
+
+$('#mfaBack').addEventListener('click', () => logout());
 
 $('#logout').addEventListener('click', () => logout());
 
@@ -443,7 +526,7 @@ $('#save').addEventListener('click', async () => {
       body: JSON.stringify({ key: SETTINGS_KEY, value, updated_at: now, updated_by: session.email }),
     });
     if (r.status === 401) return logout('Сессия истекла — войдите снова, изменения не сохранены');
-    if (r.status === 403) throw new Error('Нет прав: этот вход не в команде CRM');
+    if (r.status === 403) throw new Error('Нет прав менять настройки сайта');
     if (r.status === 404) throw new Error('В Supabase нет таблицы настроек — выполните site-settings.sql в SQL Editor и нажмите «Сохранить» ещё раз');
     if (!r.ok) throw new Error('Не получилось сохранить, попробуйте ещё раз');
     applySettings(value);

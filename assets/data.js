@@ -345,7 +345,8 @@ const picUrl = (p) => (p.startsWith('https://') ? p : `assets/${p}.webp`);
 
 function applySettings(v) {
   if (!v || typeof v !== 'object') return false;
-  const str = (x, d) => (typeof x === 'string' && x.trim() ? x.trim().slice(0, 80) : d);
+  // названия из админки сайт вставляет как HTML — без < > " ни тег, ни атрибут не подставить
+  const str = (x, d) => (typeof x === 'string' && x.trim() ? x.replace(/[<>"]/g, '').trim().slice(0, 80) || d : d);
   const num = (x) => (typeof x === 'number' && isFinite(x) && x >= 0 && x <= 1e8 ? Math.round(x) : undefined);
   const int = (x, lo, hi, d) => (Number.isInteger(x) && x >= lo && x <= hi ? x : d);
   const item = (src, def) => { // { name, price } — цена может отсутствовать

@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
+  <!-- CSP: скрипты только свои, запросы только в Supabase CRM, страницу нельзя отправить на чужой адрес -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://gzwexqyxllqkyiarrcae.supabase.co; connect-src https://gzwexqyxllqkyiarrcae.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <meta name="referrer" content="no-referrer">
   <title>Baqyla — настройки расчёта</title>
   <link rel="icon" href="assets/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -59,6 +62,9 @@
     .msg.is-bad { color: var(--rec); }
     .login { max-width: 380px; margin: 40px auto 0; }
     .login form { display: grid; gap: 14px; }
+    .mfa__qr { display: block; width: 180px; height: 180px; margin: 0 auto 10px; background: #fff; }
+    .mfa__key { word-break: break-all; font-family: var(--f-mono); font-size: 13px; }
+    .mfa__back { justify-self: center; padding: 0; border: 0; background: none; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font-size: 14px; }
     /* фото «Дополнительно»: рамка как на сайте (.ad__frame из styles.css) */
     .ph-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
     .ph { display: grid; gap: 10px; align-content: start; padding: 12px; background: var(--bg); border-radius: 16px; }
@@ -102,6 +108,22 @@
         <label class="f"><span>Пароль</span><input class="in" id="lgPass" type="password" autocomplete="current-password" required></label>
         <button class="btn btn--primary" id="lgBtn">Войти</button>
         <p class="msg" id="lgMsg" role="status"></p>
+      </form>
+    </section>
+
+    <!-- код из приложения: первый раз — QR, дальше только код -->
+    <section class="login card" id="mfa" hidden>
+      <h2>Код из приложения</h2>
+      <div id="mfaNew" hidden>
+        <p>Первый вход: отсканируйте QR-код в Google Authenticator или другом приложении для кодов.</p>
+        <img class="mfa__qr" id="mfaQr" alt="QR-код для приложения">
+        <p>Или введите ключ вручную: <span class="mfa__key" id="mfaKey"></span></p>
+      </div>
+      <form id="mfaForm">
+        <label class="f"><span>Код из 6 цифр</span><input class="in" id="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required></label>
+        <button class="btn btn--primary" id="mfaBtn">Подтвердить</button>
+        <button type="button" class="mfa__back" id="mfaBack">Войти другим логином</button>
+        <p class="msg" id="mfaMsg" role="status"></p>
       </form>
     </section>
 
