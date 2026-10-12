@@ -126,6 +126,9 @@ python3 -m http.server 5191
 ## Публикация
 
 Сайт — GitHub Pages из ветки `main`: https://baqyla-kz.github.io/ (публикуется сам после `git push`).
+Браузер держит `styles.css` и скрипты до 10 минут. Поэтому у них в HTML стоит `?v=дата`
+(`index.html`, `kits.html`, `equipment.html`, `admin.html`). Меняли CSS или JS — поменяйте `?v=` во всех четырёх,
+иначе клиенты какое-то время увидят старую версию.
 Черновики (`drafts/`, `*-variants.html`, `icon-animations.html`) в git не попадают — только локально.
 Для поиска: `robots.txt`, `sitemap.xml`, canonical/og-теги и описание организации (JSON-LD) в `<head>` `index.html`;
 при смене адреса сайта — поменять адрес во всех них.
