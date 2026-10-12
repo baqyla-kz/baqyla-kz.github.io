@@ -98,7 +98,7 @@ button { font: inherit; color: inherit; }
   .nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; margin: 0; padding: 10px calc(var(--gut) + 4px) calc(12px + env(safe-area-inset-bottom)); background: none; border-radius: 0; }
   .nav::before { content: ''; position: absolute; inset: 0; z-index: -1; background: #fff; border-top: 1px solid var(--line); }
   .nav::after { content: ''; position: absolute; z-index: -1; left: var(--gut); right: var(--gut); top: 6px; bottom: calc(8px + env(safe-area-inset-bottom)); border-radius: 12px; background: var(--panel-2); }
-  .nav a { flex: 1; flex-direction: column; gap: 2px; padding: 5px 2px 4px; font-size: 11.5px; line-height: 15px; }
+  .nav a { flex: 1; flex-direction: column; gap: 2px; padding: 5px 2px 4px; font-size: 12.5px; line-height: 15px; }
   .nav svg { width: 19px; height: 19px; }
   body { padding-bottom: calc(var(--tabs) + env(safe-area-inset-bottom)); }
   body.is-typing .nav { display: none; } /* пишут номер — полоса не висит над клавиатурой */
@@ -361,7 +361,7 @@ h1 {
   .o:hover .o__pic { transform: translateY(-4px) scale(1.05); }
   .o__days { justify-items: center; font-size: 12px; }
   .o__big--store .o__days b { font-size: 19px; }
-  .o > b { grid-column: 2; font-size: clamp(17px, 6.6cqi, 19px); hyphens: auto; }
+  .o > b { grid-column: 2; font-size: 17px; } /* без переносов: «Коммерческий объект», а не «объ-ект» */
   .o > small { font-size: clamp(15px, 6.2cqi, 17px); }
   .o > small, .o__meta { grid-column: 2; }
   .o__meta { margin-top: 6px; }
@@ -531,6 +531,7 @@ h1 {
 .ad-ic { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .ad__t { margin-top: 32px; padding: 0 6px; font: 600 16px/1.25 var(--f-display); }
 .ad__d { margin: 4px 0 12px; padding: 0 6px; color: var(--muted); font-size: 13.5px; line-height: 1.35; }
+.ad__p { margin: -6px 0 12px; padding: 0 6px; color: var(--signal); font: 600 13.5px var(--f-body); } /* цена — если указана в админке */
 .ad__tg { position: relative; flex: none; align-self: flex-end; width: 46px; height: 28px; margin: auto 6px 0 0; border-radius: 999px; background: #DCE1E8; transition: background .15s; }
 .ad__tg::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(14, 18, 24, .25); transition: transform .18s; }
 .ad[aria-pressed="true"] .ad__tg { background: var(--signal); }
@@ -623,7 +624,7 @@ h1 {
 .kits { display: grid; gap: 16px; max-width: 1400px; padding-bottom: 48px; }
 .eq.eq--kits { grid-template-columns: 260px minmax(0, 1fr); } /* «Многоквартирный» шире разделов «Оборудования» — панель шире, подсветка не вылезает */
 #kitTypes .eq__type { min-height: 52px; } /* «Все» без иконки — той же высоты, что разделы с иконкой */
-.eq__all { display: none; } /* круг «ВСЕ» вместо иконки — только на телефоне */
+.eq__all { display: none; } /* круг со значком вместо иконки у «Все» — только на телефоне */
 .eq > .kits { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; padding-bottom: 0; } /* с разделами слева — по две в ряд */
 @media (max-width: 1000px) { .eq > .kits { grid-template-columns: minmax(0, 1fr); } }
 .soon { position: relative; }
@@ -655,7 +656,9 @@ h1 {
 .kit h2 { margin: 0; font: 700 22px var(--f-display); }
 .kit__n { font: 500 12px var(--f-mono); color: var(--signal); white-space: nowrap; }
 .kit__text { margin: 8px 0 16px; color: var(--muted); font-size: 15px; }
-.kit__list { flex: 1; margin: 0 0 20px; padding: 0; list-style: none; }
+.kit__more { flex: 1; }
+.kit__tg { display: none; } /* «Что входит ⌄» — только на телефоне */
+.kit__list { margin: 0 0 20px; padding: 0; list-style: none; }
 .kit__list li { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line-soft); font-size: 14px; }
 .kit__list li span:last-child { color: var(--muted); font: 400 13px var(--f-mono); white-space: nowrap; }
 .kit__foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid var(--line); }
@@ -690,13 +693,24 @@ h1 {
   .eq__type, #kitTypes .eq__type {
     flex-direction: column; justify-content: flex-start; gap: 4px; min-width: 0; min-height: 0; padding: 10px 4px 8px;
     border: 2px solid #DCE1E8; border-bottom-width: 5px; border-radius: 14px; background: #fff; color: var(--text);
-    font: 600 12.5px/1.15 var(--f-body); text-align: center; hyphens: auto; overflow-wrap: break-word; /* «Регистра-торы» — с дефисом */
+    font: 600 12.5px/1.15 var(--f-body); text-align: center; hyphens: manual; overflow-wrap: break-word; /* перенос — там, где стоит мягкий (i18n.js: soft) */
   }
   .eq__type[aria-pressed="true"], #kitTypes .eq__type[aria-pressed="true"] { background: #EEF4FE; border-color: var(--signal); border-bottom-color: var(--signal-hi); }
   .eq__type img, #kitTypes .eq__type img { width: 38px; height: 38px; }
   .eq__type i { display: none; }
-  /* «Все» без иконки — вместо неё голубой круг с надписью */
-  .eq__all { display: grid; flex: none; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: #EEF4FE; color: var(--signal); font: 700 11px var(--f-display); text-transform: uppercase; }
+  /* «Все» без иконки — вместо неё голубой круг со значком из четырёх квадратов */
+  .eq__all { display: grid; flex: none; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: #EEF4FE; color: var(--signal); }
+  .eq__all svg { width: 20px; height: 20px; }
+  /* карточка комплекта короче: фото и схема ниже, состав свёрнут (kits.js), «Открыть в расчёте» на всю ширину */
+  .kit__media { aspect-ratio: 16 / 9; }
+  .kit__more { margin: 12px 0 16px; border-top: 1px solid var(--line-soft); }
+  .kit__tg { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 12px 0 2px; border: 0; background: none; color: var(--signal); font: 600 15px var(--f-body); cursor: pointer; }
+  .kit__tg svg { width: 18px; height: 18px; transition: transform .2s; }
+  .kit__tg[aria-expanded="true"] svg { transform: rotate(180deg); }
+  .kit__tg[aria-expanded="false"] + .kit__list { display: none; }
+  .kit__more .kit__list { margin: 8px 0 0; }
+  .kit__foot { flex-direction: column; align-items: stretch; }
+  .kit__foot .btn { width: 100%; }
   /* карточки оборудования и комплектов — с тенью, чтобы не сливались с серым фоном */
   .eq__tile, .kit { box-shadow: 0 1px 2px rgba(14, 18, 24, .06), 0 8px 24px rgba(10, 36, 99, .10); }
   .eq__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -735,6 +749,11 @@ h1 {
 main:has(+ .contacts) { min-height: calc(100vh - 65px); min-height: calc(100svh - 65px); }
 .contacts { padding-bottom: 72px; }
 .contacts__t { margin: 0 0 14px; font: 700 22px var(--f-display); }
+.contacts__city { display: none; } /* город под заголовком — только на телефоне, на компьютере он в шапке */
+@media (max-width: 720px) {
+  .contacts__city { display: flex; align-items: center; gap: 6px; margin: -6px 0 14px; color: var(--muted); font-size: 15px; }
+  .contacts__city svg { width: 18px; height: 18px; color: var(--signal); }
+}
 .contacts__tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; max-width: 760px; }
 .contacts__tiles a { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border: 1px solid var(--line-soft); border-radius: 16px; background: #fff; color: var(--text); font-weight: 600; text-decoration: none; transition: border-color .15s; }
 .contacts__tiles a:hover { border-color: #AEB7C4; }
@@ -774,35 +793,39 @@ main:has(+ .contacts) { min-height: calc(100vh - 65px); min-height: calc(100svh 
   .mbar { bottom: calc(var(--tabs) + env(safe-area-inset-bottom)); gap: 10px; padding-bottom: 10px; transform: translateY(calc(100% + var(--tabs) + env(safe-area-inset-bottom) + 2px)); }
   .toast { bottom: calc(var(--tabs) + 84px + env(safe-area-inset-bottom)); }
   .mbar [hidden] { display: none; }
-  .mbar__sum { flex: 1; min-width: 0; }
+  /* «Итог 80 250 ₸» одной строкой, панель белая — не просвечивает; пока смета на экране, панели нет (app.js: syncBar) */
+  .mbar { padding-top: 8px; padding-bottom: 8px; background: #fff; backdrop-filter: none; box-shadow: 0 -6px 16px rgba(14, 18, 24, .06); }
+  .mbar__sum { display: flex; flex: 1; align-items: baseline; gap: 8px; min-width: 0; }
+  .mbar small { font-size: 14px; }
   .mbar .btn { height: 48px; padding: 0 26px; font-size: 16px; }
   .mbar strong { white-space: nowrap; } /* «248 810 ₸» — одной строкой */
 
-  /* «Дополнительно» строками: фото, название, подпись, переключатель */
+  /* «Дополнительно» строками: фото, название, подпись, цена (если есть), переключатель */
   .adds__grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .adds__g { margin: 18px 0 2px; }
-  .ad { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 12px; align-items: center; padding: 10px 0; background: none; border: 0; border-top: 1px solid var(--line-soft); border-radius: 0; }
+  .ad { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; grid-template-rows: auto auto auto; column-gap: 12px; align-items: center; padding: 10px 0; background: none; border: 0; border-top: 1px solid var(--line-soft); border-radius: 0; }
   .ad:hover, .ad:active { transform: none; margin-top: 0; }
   .ad[aria-pressed="true"] { background: none; }
-  .ad__pic { grid-row: 1 / span 2; width: 64px; }
+  .ad__pic { grid-row: 1 / -1; width: 64px; }
   .ad__frame { border-radius: 10px; }
   .ad__badge, .ad__wave, .ad__lbl { display: none; }
   .ad__t { grid-column: 2; grid-row: 1; align-self: end; margin: 0; padding: 0; font-size: 15px; }
   .ad__d { grid-column: 2; grid-row: 2; align-self: start; margin: 2px 0 0; padding: 0; font-size: 13px; }
-  .ad__tg { grid-column: 3; grid-row: 1 / span 2; align-self: center; margin: 0; }
+  .ad__p { grid-column: 2; grid-row: 3; margin: 3px 0 0; padding: 0; font-size: 13px; }
+  .ad__tg { grid-column: 3; grid-row: 1 / -1; align-self: center; margin: 0; }
 
-  /* шаг «Камеры», ЖК: три карточки строками — фото слева, справа название, подпись и «− 0 +»; все три на одном экране.
-     [data-zone] — чтобы перебить высоту карточек ЖК из правил выше */
-  .cnt--three .cnt__card[data-zone] { display: grid; grid-template-columns: 104px minmax(0, 1fr); grid-template-rows: auto 1fr auto; column-gap: 12px; min-height: 0; padding: 10px; }
-  .cnt--three .cnt__photo { position: relative; grid-row: 1 / -1; width: 104px; height: 124px; border-radius: 12px; clip-path: none; }
-  .cnt--three .cnt__cam, .cnt--three .cnt__row { display: none; }
-  .cnt--three .cnt__main { grid-column: 2; max-width: none; gap: 2px; padding-top: 2px; }
-  .cnt--three .cnt__t { font-size: 18px; }
-  .cnt--three .cnt__d { font-size: 13.5px; line-height: 1.3; }
-  .cnt--three .cnt__ctl { position: static; grid-column: 2; grid-row: 3; justify-self: end; gap: 4px; padding: 4px; border-radius: 16px; box-shadow: 0 2px 10px rgba(14, 18, 24, .14); }
-  .cnt--three .cnt__ctl button { width: 40px; height: 40px; border-bottom-width: 4px; border-radius: 12px; font-size: 22px; }
-  .cnt--three .cnt__n { min-width: 40px; font-size: 24px; }
-  .cnt--three .cnt__n small { font-size: 11px; }
+  /* шаг «Камеры»: карточки строками — фото слева, справа название, подпись и «− 0 +»; все карточки, «Всего» и кнопки
+     на одном экране (у дома и бизнеса две, у ЖК три). [data-zone] — чтобы перебить высоту карточек ЖК из правил выше */
+  .cnt .cnt__card[data-zone] { display: grid; grid-template-columns: 104px minmax(0, 1fr); grid-template-rows: auto 1fr auto; column-gap: 12px; min-height: 0; padding: 10px; }
+  .cnt .cnt__photo { position: relative; grid-row: 1 / -1; width: 104px; height: 124px; border-radius: 12px; clip-path: none; }
+  .cnt .cnt__cam, .cnt .cnt__row { display: none; }
+  .cnt .cnt__main { grid-column: 2; max-width: none; gap: 2px; padding-top: 2px; }
+  .cnt .cnt__t { font-size: 18px; }
+  .cnt .cnt__d { font-size: 13.5px; line-height: 1.3; }
+  .cnt .cnt__ctl { position: static; grid-column: 2; grid-row: 3; justify-self: end; gap: 4px; padding: 4px; border-radius: 16px; box-shadow: 0 2px 10px rgba(14, 18, 24, .14); }
+  .cnt .cnt__ctl button { width: 40px; height: 40px; border-bottom-width: 4px; border-radius: 12px; font-size: 22px; }
+  .cnt .cnt__n { min-width: 40px; font-size: 24px; }
+  .cnt .cnt__n small { font-size: 11px; }
 
   /* шаг «Запись и интернет»: диски — плитки в ряд, интернет — две плитки; весь шаг — на одном экране */
   .q.q--sub { margin: 22px 0 12px; }
@@ -862,20 +885,34 @@ main:has(+ .contacts) { min-height: calc(100vh - 65px); min-height: calc(100svh 
   .sch__zoom button { width: 44px; height: 44px; }
   .soon { min-height: 280px; }
   .soon .kits { display: none; }
+
+  /* шаг 1: подсказка «Нажмите на карточку» — светлая и невысокая, не чёрная плашка; третья карточка видна целиком */
+  .hint { gap: 6px; padding-left: 6px; padding-right: 12px; background: #EEF4FE; color: var(--signal); font-size: 13px; }
+  .hint.is-on { max-height: 34px; padding-top: 4px; padding-bottom: 4px; animation: none; }
+  .hint svg { width: 20px; height: 20px; color: var(--signal); fill: #EEF4FE; }
+  /* кружки шагов 1–4 — под палец */
+  .steps-bar button { height: 42px; }
+  .steps-bar b { width: 34px; height: 34px; font-size: 14px; }
+  /* «Ежемесячно» — как плитки сметы; мелкие подписи — не меньше 12,5 px */
+  .smeta__monthly .ln { background: #E8ECF1; }
+  .smeta__mnote, .smeta__note { font-size: 12.5px; }
+  .ln__sum small { font-size: 12px; }
+  .sch__l { font-size: 12.5px; }
 }
 
-/* невысокий телефон (до 780 px по высоте): карточки ЖК и отступ под шагами ещё меньше — три карточки всё равно на одном экране */
+/* невысокий телефон (до 780 px по высоте): карточки шага «Камеры» и отступ под шагами ещё меньше — три карточки ЖК всё равно на одном экране */
 @media (max-width: 720px) and (max-height: 780px) {
   .steps-bar { margin-bottom: 20px; }
-  .cnt--three .cnt__card[data-zone] { grid-template-columns: 84px minmax(0, 1fr); padding: 8px; }
-  .cnt--three .cnt__photo { width: 84px; height: 100px; }
-  .cnt--three .cnt__t { font-size: 16px; }
-  .cnt--three .cnt__d { font-size: 13px; }
-  .cnt--three .cnt__ctl button { width: 38px; height: 38px; }
+  .cnt .cnt__card[data-zone] { grid-template-columns: 84px minmax(0, 1fr); padding: 8px; }
+  .cnt .cnt__photo { width: 84px; height: 100px; }
+  .cnt .cnt__t { font-size: 16px; }
+  .cnt .cnt__d { font-size: 13px; }
+  .cnt .cnt__ctl button { width: 38px; height: 38px; }
 }
 
-/* самый узкий телефон (320 px): итог и кнопка в нижней панели помещаются рядом */
+/* самый узкий телефон (320 px): итог и кнопка в нижней панели помещаются рядом; «Камералар» — в плитке раздела */
 @media (max-width: 350px) {
+  .eq__type, #kitTypes .eq__type { padding-left: 2px; padding-right: 2px; font-size: 11px; }
   .mbar strong { font-size: 18px; }
   .mbar .btn { padding: 0 16px; }
 }

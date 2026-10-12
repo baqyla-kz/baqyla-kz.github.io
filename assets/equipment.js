@@ -18,7 +18,7 @@ function renderEquipment() {
   const tabs = document.querySelector('#eqTypes');
   tabs.setAttribute('aria-label', t('Разделы оборудования'));
   tabs.innerHTML = types.map((ty) => `<button type="button" class="eq__type" data-type="${ty.id}" aria-pressed="${ty.id === eqCur}">`
-    + `<img src="assets/icons/${ty.ic}.webp" alt=""><span>${t(ty.t)}</span><i>${cards.filter((c) => c.type === ty.id).length}</i></button>`).join('');
+    + `<img src="assets/icons/${ty.ic}.webp" alt=""><span>${soft(t(ty.t))}</span><i>${cards.filter((c) => c.type === ty.id).length}</i></button>`).join('');
   document.querySelector('#eqGrid').innerHTML = cards.filter((c) => c.type === eqCur).map((c) => `
     <article class="eq__tile">
       <div class="eq__ph${c.pic.startsWith('https://') ? ' eq__ph--photo' : ''}"><img src="${picUrl(c.pic)}" alt=""></div>

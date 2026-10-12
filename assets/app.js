@@ -106,6 +106,7 @@ function renderStepsBar() {
 function renderStep(animate) {
   const s = STEPS[state.step];
   $('#q').textContent = t(s.q);
+  if (state.step >= STEPS.length - 2) loadScheme3d();
   renderStepsBar();
   const body = $('#stepBody');
 
@@ -145,7 +146,8 @@ function renderStep(animate) {
     void body.offsetWidth;
     body.classList.add('is-in');
     const first = last && phone.matches ? $('.calc') : $('#wiz'); // на «Схеме» у телефона сверху смета
-    if (first.getBoundingClientRect().top < 0) first.scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+    // в следующем кадре: сразу после перерисовки шага и сметы Safari обрывает плавную прокрутку — клиент оставался внизу
+    if (first.getBoundingClientRect().top < 0) requestAnimationFrame(() => first.scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth' }));
   }
 }
 
@@ -215,7 +217,7 @@ $('#schTg').addEventListener('click', () => {
   schOff = !schOff;
   syncSchTg();
   // смета встаёт под заголовок; если шаг уже прокручен вверх за край — вернуть заголовок на экран
-  if (schOff && $('#wiz').getBoundingClientRect().top < 0) $('#wiz').scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+  if (schOff && $('#wiz').getBoundingClientRect().top < 0) requestAnimationFrame(() => $('#wiz').scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth' }));
 });
 
 function go(step) {
@@ -329,6 +331,19 @@ function renderZones() {
 // 3D рисует assets/scheme3d.js (модуль, Three.js с CDN) — он может загрузиться позже шага.
 
 const view = '3d'; // на сайте только 3D (2D — в PDF)
+
+// модуль с Three.js тяжёлый (~0,5 МБ с CDN) и нужен только на «Схеме» (и для PDF там же) — грузим, когда клиент
+// дошёл до шага 3: к «Схеме» он уже готов. Пришли сразу на «Схему» (ссылка, перезагрузка) — грузим сразу.
+// Версия (?v=) — та же, что у app.js
+let scheme3dAsked = false;
+function loadScheme3d() {
+  if (scheme3dAsked || window.Scheme3D) return;
+  scheme3dAsked = true;
+  const s = document.createElement('script');
+  s.type = 'module';
+  s.src = $('script[src*="assets/app.js"]').src.replace('app.js', 'scheme3d.js');
+  document.body.append(s);
+}
 const ZOOM_PHONE = { many: 1.4, one: 1.65 };
 
 function renderScheme() {
@@ -351,6 +366,7 @@ function renderScheme() {
 
 function drawScheme() {
   if (!window.Scheme3D) {
+    loadScheme3d();
     addEventListener('scheme3d-ready', drawScheme, { once: true });
     return;
   }
@@ -393,6 +409,13 @@ const addImg = (f) => {
 };
 const WAVE = `<span class="ad__wave">${Array.from({ length: 20 }, (_, i) => `<i style="animation-delay:-${(i * 137 % 100) / 100}s;animation-duration:${0.5 + (i * 53 % 50) / 100}s"></i>`).join('')}</span>`;
 
+// цена опции под подписью — только если указана в админке: «+5 000 ₸ за камеру», у монитора «от 15 000 ₸»
+function addPrice(a) {
+  if (!hasPrice(a.price)) return '';
+  const p = `${a.from ? `${t('от')} ` : '+'}${fmt(a.price)}`;
+  return `<span class="ad__p">${a.per === 'cam' ? L(`${p} за камеру`, `әр камераға ${p}`) : p}</span>`;
+}
+
 function renderAddons() {
   const on = new Set(state.addons);
   const card = (a) => `
@@ -404,7 +427,7 @@ function renderAddons() {
         <span class="ad__badge">${addIcon(a.id)}</span>
       </span>
       <b class="ad__t">${t(a.t)}</b>
-      <small class="ad__d">${tl(a.d)}</small>
+      <small class="ad__d">${tl(a.d)}</small>${addPrice(a)}
       <span class="ad__tg" aria-hidden="true"></span>
     </button>`;
   return `<h2 class="adds__t" id="addsT">${t('Дополнительно')}</h2>
@@ -509,9 +532,9 @@ function renderSmeta() {
         + (e.extra.length ? `<div class="smeta__sub">${t('Дополнительно')}</div>${e.extra.map((l) => lineHtml(l)).join('')}` : '');
   markWide();
   from = n && (per || e.draft) ? `${t('от')} ` : ''; // есть позиции без цены — итог «от»
-  // нижняя панель: пока камер не выбрали — не «Итого от 15 000 ₸», а прямо «Установка 1 камеры · 15 000 ₸»
+  // нижняя панель: пока камер не выбрали — не «Итог от 15 000 ₸», а прямо «Установка 1 камеры · 15 000 ₸»
   mFrom = per ? '' : from;
-  $('#mLabel').textContent = t(per ? 'Установка 1 камеры' : 'Итого');
+  $('#mLabel').textContent = t(per ? 'Установка 1 камеры' : 'Итог');
   $('#from').hidden = !from;
   $('#from').textContent = t('от');
   $('#totalT').textContent = t('Итог');
@@ -746,7 +769,9 @@ let typing = false; // телефон: пишут номер в заявке —
 function syncBar() {
   const r = $('.smeta').getBoundingClientRect(), off = r.top > innerHeight || r.bottom < 0;
   if (!phone.matches) { mbar.classList.toggle('is-on', smetaOpen && window.scrollY > 200 && off); return; }
-  mbar.classList.toggle('is-on', !typing && state.step > 0); // шаг «Объект»: цена ещё неизвестна — панели итога нет (в смете — как было)
+  // шаг «Объект»: цена ещё неизвестна — панели итога нет (в смете — как было); смета на экране — тоже нет, сумма не дублируется
+  const smetaOn = r.top < innerHeight - 160 && r.bottom > 120;
+  mbar.classList.toggle('is-on', !typing && state.step > 0 && !smetaOn);
   const a = $('#acts').getBoundingClientRect(), actsOn = !$('#acts').hidden && a.top < innerHeight && a.bottom > 0;
   $('#mSend').hidden = !(state.step === STEPS.length - 1 && smetaOpen && !actsOn);
 }

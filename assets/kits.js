@@ -17,13 +17,18 @@ const kitText = (k, f) => (I18N.lang === 'kk' && k[`${f}Kk`]) || t(k[f]);
 
 let kitCur = location.hash.slice(1) || 'all';
 
+// «Все» на телефоне — значок из четырёх квадратов вместо картинки раздела
+const KIT_ALL_IC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>';
+// состав комплекта на телефоне свёрнут под «Что входит · 5 ⌄», на компьютере — всегда открыт (кнопка скрыта)
+const KIT_CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+
 function renderKits() {
   const types = KIT_TYPES.filter((ty) => ty.id === 'all' || kitsOf(ty.id).length); // пустой раздел не показываем
   if (!types.some((ty) => ty.id === kitCur)) kitCur = 'all';
   const tabs = document.querySelector('#kitTypes');
   tabs.setAttribute('aria-label', t('Разделы комплектов'));
   tabs.innerHTML = types.map((ty) => `<button type="button" class="eq__type" data-type="${ty.id}" aria-pressed="${ty.id === kitCur}">`
-    + `${ty.ic ? `<img src="assets/icons/${ty.ic}.webp" alt="">` : `<b class="eq__all" aria-hidden="true">${t(ty.t)}</b>`}<span>${t(ty.t)}</span><i>${kitsOf(ty.id).length}</i></button>`).join('');
+    + `${ty.ic ? `<img src="assets/icons/${ty.ic}.webp" alt="">` : `<b class="eq__all" aria-hidden="true">${KIT_ALL_IC}</b>`}<span>${soft(t(ty.t))}</span><i>${kitsOf(ty.id).length}</i></button>`).join('');
   document.querySelector('#kitsList').innerHTML = kitsOf(kitCur).map((k) => {
     const e = estimate(kitState(k));
     const main = e.eq.filter((l) => !l.parts); // «Доп. материалы» — строкой «Кабель, гофра, коннекторы» ниже
@@ -43,11 +48,14 @@ function renderKits() {
       </div>
       <div class="kit__top"><h2>${kitText(k, 'name')}</h2><span class="kit__n">${c.total} ${plural(c.total, 'камера', 'камеры', 'камер')}</span></div>
       ${k.text ? `<p class="kit__text">${kitText(k, 'text')}</p>` : ''}
-      <ul class="kit__list">
-        ${main.map((l) => `<li><span>${l.name}</span><span>${l.qty} ${l.unit}</span></li>`).join('')}
-        <li><span>${L('Кабель, гофра, коннекторы', 'Кабель, гофра, коннекторлар')}</span><span>${L(`${PLANS[k.plan].cable} м на камеру`, `әр камераға ${PLANS[k.plan].cable} м`)}</span></li>
-        <li><span>${L('Монтаж и настройка телефона', 'Монтаж және телефонды баптау')}</span><span>${fmt(work)}</span></li>
-      </ul>
+      <div class="kit__more">
+        <button type="button" class="kit__tg" aria-expanded="false">${t('Что входит')} · ${main.length + 2}${KIT_CHEV}</button>
+        <ul class="kit__list">
+          ${main.map((l) => `<li><span>${l.name}</span><span>${l.qty} ${l.unit}</span></li>`).join('')}
+          <li><span>${L('Кабель, гофра, коннекторы', 'Кабель, гофра, коннекторлар')}</span><span>${L(`${PLANS[k.plan].cable} м на камеру`, `әр камераға ${PLANS[k.plan].cable} м`)}</span></li>
+          <li><span>${L('Монтаж и настройка телефона', 'Монтаж және телефонды баптау')}</span><span>${fmt(work)}</span></li>
+        </ul>
+      </div>
       <div class="kit__foot">
         <div><small>${L('Под ключ', 'Толық орнатумен')}</small><div class="kit__price">${!own && e.draft ? `<small>${t('от')} </small>` : ''}${fmt(own ? k.price : e.total)}</div></div>
         <a class="btn btn--primary" href="${kitHref(k)}">${L('Открыть в расчёте', 'Есептеуде ашу')}</a>
@@ -80,6 +88,11 @@ function drawKitSchemes() {
 let kitResize;
 addEventListener('resize', () => { clearTimeout(kitResize); kitResize = setTimeout(drawKitSchemes, 200); });
 addEventListener('scheme3d-ready', drawKitSchemes);
+
+document.querySelector('#kitsList').addEventListener('click', (e) => {
+  const b = e.target.closest('.kit__tg');
+  if (b) b.setAttribute('aria-expanded', b.getAttribute('aria-expanded') !== 'true');
+});
 
 document.querySelector('#kitTypes').addEventListener('click', (e) => {
   const b = e.target.closest('[data-type]');

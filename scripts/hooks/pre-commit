@@ -1,0 +1,12 @@
+#!/bin/sh
+# Меняли CSS или JS сайта — ставим новый ?v= в HTML-страницах, чтобы браузеры сразу взяли новые файлы,
+# а не держали старые до 10 минут (README → «Публикация»). Подключение: git config core.hooksPath scripts/hooks
+git diff --cached --name-only | grep -qE '^assets/.+\.(css|js)$' || exit 0
+v=$(date +%Y-%m-%d-%H%M)
+for f in index.html kits.html equipment.html admin.html; do
+  git cat-file -e ":$f" 2>/dev/null || continue
+  # в коммит идёт только смена версии: правим то, что уже добавлено в коммит, а не весь файл с диска
+  blob=$(git show ":$f" | sed -E "s/\?v=[0-9A-Za-z-]+\"/?v=$v\"/g" | git hash-object -w --stdin)
+  git update-index --cacheinfo 100644 "$blob" "$f"
+  sed -E "s/\?v=[0-9A-Za-z-]+\"/?v=$v\"/g" "$f" > "$f.tmp" && cat "$f.tmp" > "$f" && rm "$f.tmp"
+done
