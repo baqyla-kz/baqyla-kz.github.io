@@ -141,6 +141,7 @@ const OBJECTS = [
 // Старые ссылки ?kit=N из расчёта ведут сюда же, по номеру.
 const KITS = [
   { name: 'Дом 1 камера', plan: 'home', on: [0], store: 'sd', text: '' },
+  { name: 'Камера во двор', plan: 'flats', on: [0, 6], store: 'sd', text: '' },
   { name: 'Бизнес', plan: 'business', on: [0, 1, 2, 3, 4, 5, 6, 7], store: '4x1', text: 'Улица и торговый зал: восемь камер' },
   { name: 'Двор и подъезд', plan: 'flats', on: [0, 1, 2, 3, 6, 7], store: '4x1', text: 'Входы, парковка и холлы подъездов' },
 ];
