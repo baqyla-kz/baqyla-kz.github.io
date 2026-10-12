@@ -463,6 +463,10 @@ function catalogDefaults() {
     add('cam', 'cam-wifi', { name: t(P.camWifi.name), spec: L('Wi‑Fi, запись на карту в камере', 'Wi‑Fi, камерадағы картаға жазады'), price: P.camWifi.price, pic: 'icons/camera' });
     add('cam', 'cam', { name: t(P.cam.name), spec: L('По кабелю, запись на регистратор', 'Кабельмен, регистраторға жазады'), price: P.cam.price, pic: 'icons/camera' });
     add('cam', 'cam-talk', { name: t(P.camTalk.name), spec: L('Можно говорить через камеру', 'Камера арқылы сөйлесуге болады'), price: P.camTalk.price, pic: 'icons/camera' });
+    // ПРИМЕР из вайрфрейма: цены придуманные — поправить или удалить в админке
+    add('cam', 'cam-ptz', { name: L('Поворотная камера', 'Бұрылатын камера'), spec: L('Поворот и зум с телефона', 'Телефоннан бұрып, жақындатасыз'), price: 52000, pic: 'icons/camera' });
+    add('cam', 'cam-4mp', { name: L('Камера 4 Мп', 'Камера 4 Мп'), spec: L('Чётче видно лица и номера', 'Бет пен нөмір анығырақ көрінеді'), price: 27000, pic: 'icons/camera' });
+    add('cam', 'cam-lift', { name: L('Камера в лифт', 'Лифтке камера'), spec: L('Маленькая, антивандальная', 'Кішкентай, сындыруға төзімді'), price: 21000, pic: 'icons/camera' });
     for (const ch of NVR_CH) {
       add('nvr', `nvr-${ch}`, { name: L(`${P.nvr.name} ${ch} ${plural(ch, 'канал', 'канала', 'каналов')}`, `${ch} арналы ${lc(t(P.nvr.name))}`),
         spec: L(`До ${ch} камер`, `${ch} камераға дейін`), price: P.nvr.prices[ch], pic: 'icons/nvr' });
@@ -471,10 +475,11 @@ function catalogDefaults() {
       const r = daysRange(storeDays({ tb, qty: 1 }, 4));
       add('hdd', `hdd-${tb}`, { name: L(`${P.hdd.name} ${tb} ТБ`, `${tb} ТБ ${lc(t(P.hdd.name))}`), spec: L(`4 камеры пишут ${r.text}`, `4 камера ${r.text} жазады`), price: P.hdd.prices[tb], pic: 'icons/hdd' });
     }
-    add('hdd', 'sd', { name: t(P.sd.name), spec: L('Для Wi‑Fi камеры', 'Wi‑Fi камераға'), price: P.sd.price, pic: 'icons/sd' });
+    add('hdd', 'sd', { name: t(P.sd.name), spec: L('Для Wi‑Fi камеры', 'Wi‑Fi камераға'), price: hasPrice(P.sd.price) ? P.sd.price : 6000, pic: 'icons/sd' }); // 6000 — пример из вайрфрейма
     const m = ADDON.monitor;
     add('more', 'monitor', { name: t(m.t), spec: t(m.d), price: m.price, from: !!m.from, pic: 'icons/monitor' });
     add('more', 'bridge', { name: t(FLATS.lift.bridge.name), spec: L('Сигнал из лифта без кабеля', 'Лифттен сигналды кабельсіз жеткізеді'), price: FLATS.lift.bridge.price, pic: 'icons/router' });
+    add('more', 'switch', { name: L('Коммутатор PoE', 'PoE коммутатор'), spec: L('Питание и сеть по одному кабелю', 'Қуат пен интернет бір кабельмен'), price: 18000, pic: 'icons/switch' }); // пример из вайрфрейма
     add('more', 'router4g', { name: t(PRICE.router4g.name), spec: L('Если на объекте нет интернета', 'Интернет жоқ болса'), price: PRICE.router4g.price, per: 'month', pic: 'icons/router' });
     // материалы: одна позиция в разных группах (гермобокс и на улицу, и в лифт) — одной карточкой
     const seen = new Set();
