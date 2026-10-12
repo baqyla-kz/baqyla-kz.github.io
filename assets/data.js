@@ -479,15 +479,20 @@ function catalogDefaults() {
           L('Встроенный микрофон', 'Ішінде микрофоны бар'), L(`Ночная съёмка: ИК‑подсветка до ${ir}\u00a0м`, `Түнде түсіреді: ИҚ жарығы ${ir}\u00a0м-ге дейін`),
           L('Защита от пыли и воды: IP67', 'Шаң мен судан қорғалған: IP67'), L('Сжатие видео: H.265', 'Видео сығу: H.265')] });
     }
-    // Hikvision на 4 камеры: одно фото на обе, цена «от» — Kaspi + 15% запаса; общая карточка «4 канала» не нужна
-    add('nvr', 'hik-nvr-4', { name: L('Регистратор Hikvision 4\u00a0канала', 'Hikvision 4 арналы регистраторы'),
-      spec: L('Для камер до 4\u00a0Мп · DS‑7104NI‑Q1(D)', '4\u00a0Мп‑ге дейінгі камераларға · DS‑7104NI‑Q1(D)'), price: 31815, from: true, pic: 'products/hikvision-nvr-4ch' });
-    add('nvr', 'hik-nvr-4-4k', { name: L('Регистратор Hikvision 4K, 4\u00a0канала', 'Hikvision 4K, 4 арналы регистраторы'),
-      spec: L('Для камер до 4K · DS‑7604NI‑Q1(E)', '4K‑ге дейінгі камераларға · DS‑7604NI‑Q1(E)'), price: 50209, from: true, pic: 'products/hikvision-nvr-4ch' });
-    for (const ch of NVR_CH.filter((n) => n !== 4)) {
-      add('nvr', `nvr-${ch}`, { name: L(`${P.nvr.name} ${ch} ${plural(ch, 'канал', 'канала', 'каналов')}`, `${ch} арналы ${lc(t(P.nvr.name))}`),
-        spec: L(`До ${ch} камер`, `${ch} камераға дейін`), price: P.nvr.prices[ch], pic: 'icons/nvr' });
+    // регистраторы Hikvision: одно фото на все, цена «от» — Kaspi + 15% запаса. 4K на 8 камер — ставим 16-канальный (модель не указана).
+    // [каналы, PoE-портов, 4K, модель, цена]; общие карточки на 4, 8 и 16 каналов заменены ими, 32 — пока из цен расчёта
+    const ch_ = (n) => `${n}\u00a0${plural(n, 'канал', 'канала', 'каналов')}`;
+    for (const [ch, poe, k4, model, price] of [
+      [4, 0, false, 'DS‑7104NI‑Q1(D)', 31815], [4, 0, true, 'DS‑7604NI‑Q1(E)', 50209],
+      [4, 4, false, 'DS‑7104NI‑Q1/4P(D)', 57055], [4, 4, true, 'DS‑7604NI‑Q1/4P(E)', 73419],
+      [8, 0, false, 'DS‑7108NI‑Q1(D)', 39974], [16, 0, true, '', 54204],
+      [8, 8, false, 'DS‑7108NI‑Q1/8P(D)', 79960], [16, 16, true, '', 136975]]) {
+      const m = model ? ` · ${model}` : '';
+      add('nvr', `hik-nvr-${ch}${poe ? `-poe${poe}` : ''}${k4 ? '-4k' : ''}`, {
+        name: L(`Регистратор Hikvision ${k4 ? '4K, ' : ''}${ch_(ch)}${poe ? ` + ${poe}\u00a0PoE` : ''}`, `Hikvision ${k4 ? '4K, ' : ''}${ch} арналы${poe ? ` + ${poe}\u00a0PoE` : ''} регистраторы`),
+        spec: L(`Для камер до ${k4 ? '4K' : '4\u00a0Мп'}${m}`, `${k4 ? '4K‑ге' : '4\u00a0Мп‑ге'} дейінгі камераларға${m}`), price, from: true, pic: 'products/hikvision-nvr-4ch' });
     }
+    add('nvr', 'nvr-32', { name: L(`${P.nvr.name} ${ch_(32)}`, `32 арналы ${lc(t(P.nvr.name))}`), spec: L('До 32 камер', '32 камераға дейін'), price: P.nvr.prices[32], pic: 'icons/nvr' });
     for (const tb of HDD_SIZES) {
       const r = daysRange(storeDays({ tb, qty: 1 }, 4));
       add('hdd', `hdd-${tb}`, { name: L(`${P.hdd.name} ${tb} ТБ`, `${tb} ТБ ${lc(t(P.hdd.name))}`), spec: L(`4 камеры пишут ${r.text}`, `4 камера ${r.text} жазады`), price: P.hdd.prices[tb], pic: 'icons/hdd' });
