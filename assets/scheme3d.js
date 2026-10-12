@@ -1,23 +1,72 @@
 // 3D-схема шага «Схема» на Three.js: сцены и места камер — в scenes.js.
 // Режим 3D — сцену можно вращать; 2D — та же сцена строго сверху (план), вращение выключено.
 // Отдаёт window.Scheme3D: draw(…) для страницы и snapshot(…) для PDF.
+// Стиль «реалистичный»: скруглённые края, фактуры по цвету (SC_ROLE в scenes.js), гладкие деревья,
+// люди и машины — модели из простых форм (spec.extras), зона обзора — полупрозрачный объём от объектива до пола.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
 // мир (x, y, z-вверх) → three (x, z, y): вид совпадает с изометрией из черновика и с планом сверху
 const V = (x, y, z = 0) => new THREE.Vector3(x, z, y);
 const mat = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.85, metalness: 0, ...o });
 
+// ---------- фактуры: серые картинки, умножаются на цвет материала ----------
+const TEX = {};
+function texture(kind) {
+  if (TEX[kind]) return TEX[kind];
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 256;
+  const x = cv.getContext('2d');
+  x.fillStyle = '#fff';
+  x.fillRect(0, 0, 256, 256);
+  const noise = (n, a, sz = 1) => { for (let i = 0; i < n; i++) { x.fillStyle = `rgba(${Math.random() < 0.5 ? '0,0,0' : '255,255,255'},${Math.random() * a})`; x.fillRect(Math.random() * 256, Math.random() * 256, sz, sz); } };
+  const line = (x0, y0, x1, y1, a, w = 1) => { x.strokeStyle = `rgba(0,0,0,${a})`; x.lineWidth = w; x.beginPath(); x.moveTo(x0, y0); x.lineTo(x1, y1); x.stroke(); };
+  if (kind === 'grain' || kind === 'planks') {
+    for (let i = 0; i < 90; i++) { x.strokeStyle = `rgba(0,0,0,${0.04 + Math.random() * 0.08})`; x.lineWidth = 0.5 + Math.random() * 1.5; x.beginPath(); const y0 = Math.random() * 256; x.moveTo(0, y0); x.bezierCurveTo(80, y0 + Math.random() * 8 - 4, 170, y0 + Math.random() * 8 - 4, 256, y0); x.stroke(); }
+    if (kind === 'planks') for (let i = 0; i <= 4; i++) { line(0, i * 64, 256, i * 64, 0.35, 2); for (let k = 0; k < 2; k++) { const px = (i * 97 + k * 131) % 256; line(px, i * 64, px, i * 64 + 64, 0.25, 1.5); } } // доски по 0,5 м со стыками
+  }
+  if (kind === 'grass') { noise(9000, 0.12, 2); for (let i = 0; i < 700; i++) { const px = Math.random() * 256, py = Math.random() * 256; line(px, py, px + Math.random() * 2 - 1, py - 3 - Math.random() * 3, 0.12); } }
+  if (kind === 'asphalt') noise(10000, 0.18, 2);
+  if (kind === 'stone') { noise(4000, 0.06); for (let r = 0; r < 4; r++) { line(0, r * 64, 256, r * 64, 0.2, 1.5); for (let c = 0; c <= 2; c++) line(c * 128 + (r % 2) * 64, r * 64, c * 128 + (r % 2) * 64, r * 64 + 64, 0.2, 1.5); } }
+  if (kind === 'tile') { noise(2500, 0.04); for (let i = 0; i <= 4; i++) { line(0, i * 64, 256, i * 64, 0.14, 1.5); line(i * 64, 0, i * 64, 256, 0.14, 1.5); } }
+  if (kind === 'fabric') noise(12000, 0.1);
+  if (kind === 'plaster') noise(4000, 0.05);
+  if (kind === 'roof') { noise(3000, 0.08); for (let i = 0; i <= 8; i++) line(0, i * 32, 256, i * 32, 0.25, 2); }
+  if (kind === 'soil') noise(9000, 0.2, 2);
+  const t = new THREE.CanvasTexture(cv);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = 4;
+  return (TEX[kind] = t);
+}
+const TILE = { grass: 3, asphalt: 3, stone: 2, planks: 2, tile: 2.4, grain: 1.2, fabric: 1, plaster: 2, roof: 1.5, soil: 2 }; // метров на один повтор фактуры
+const ROUGH = { grass: 1, asphalt: 0.95, stone: 0.9, planks: 0.55, tile: 0.4, grain: 0.55, fabric: 0.95, plaster: 0.9, roof: 0.85, soil: 1 };
+const ROLE = {}; // цвет → фактура
+for (const [kind, keys] of Object.entries(SC_ROLE)) for (const k of keys) ROLE[SC[k].toUpperCase()] = kind;
+const texRep = {};
+function texFor(kind, rx, ry) {
+  const key = `${kind}|${rx.toFixed(1)}|${ry.toFixed(1)}`;
+  if (!texRep[key]) { const t = texture(kind).clone(); t.repeat.set(rx, ry); t.needsUpdate = true; texRep[key] = t; }
+  return texRep[key];
+}
+// материал по цвету: с фактурой, если она у этого цвета есть; w × h — размер поверхности в метрах
+function matFor(fill, w, h, plane) {
+  let kind = ROLE[String(fill).toUpperCase()];
+  if (!kind) return mat(fill);
+  if (kind === 'wood') kind = plane ? 'planks' : 'grain';
+  return mat(fill, { map: texFor(kind, Math.max(1, w / TILE[kind]), Math.max(1, h / TILE[kind])), roughness: ROUGH[kind] });
+}
+
 function box(b) {
   const g = new THREE.Group();
   const z = b.z || 0;
-  const m = new THREE.Mesh(new THREE.BoxGeometry(b.w, b.h, b.d), mat(b.fill));
+  const r = Math.min(0.06, Math.min(b.w, b.h, b.d) * 0.25); // скруглённые края
+  const geo = r > 0.004 ? new RoundedBoxGeometry(b.w, b.h, b.d, 2, r) : new THREE.BoxGeometry(b.w, b.h, b.d);
+  const m = new THREE.Mesh(geo, matFor(b.fill, Math.max(b.w, b.d), b.h, false));
   m.position.copy(V(b.x + b.w / 2, b.y + b.d / 2, z + b.h / 2));
   m.castShadow = m.receiveShadow = true;
   g.add(m);
-  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), new THREE.LineBasicMaterial({ color: 0x0A2463, transparent: true, opacity: 0.18 }));
-  edges.position.copy(m.position);
-  g.add(edges);
   for (const dc of b.decals || []) {
     const p = new THREE.Mesh(new THREE.PlaneGeometry(dc.u1 - dc.u0, dc.v1 - dc.v0), mat(dc.fill, { roughness: 0.4 }));
     const v = z + (dc.v0 + dc.v1) / 2, u = (dc.u0 + dc.u1) / 2;
@@ -65,10 +114,119 @@ function tree(t) {
     tr.castShadow = true;
     g.add(tr);
   }
-  const cr = new THREE.Mesh(new THREE.IcosahedronGeometry(t.r, 1), mat(SC.crown, { flatShading: true }));
+  // крона: гладкий шар и три поменьше вокруг
+  const geo = new THREE.IcosahedronGeometry(t.r, 3), m = mat(SC.crown, { map: texture('fabric'), roughness: 1 });
+  const cr = new THREE.Mesh(geo, m);
   cr.position.copy(V(t.x, t.y, t.h * 0.68));
   cr.castShadow = true;
+  for (const [dx, dy, dz, k] of [[0.55, -0.2, 0.25, 0.62], [-0.5, -0.25, -0.3, 0.58], [0.1, 0.35, -0.45, 0.5]]) {
+    const b = new THREE.Mesh(geo, m);
+    b.position.set(dx * t.r, dy * t.r, dz * t.r);
+    b.scale.setScalar(k);
+    b.castShadow = true;
+    cr.add(b);
+  }
   g.add(cr);
+  return g;
+}
+
+// ---------- человек из простых форм, рост ~1.75 м; walk — шаг, box — несёт коробку ----------
+function human({ skin, top, pants, shoes, hair, walk = 0, box = false, mannequin = false }) {
+  const g = new THREE.Group();
+  const add = (geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); g.add(o); return o; };
+  const mSkin = mat(skin, { roughness: mannequin ? 0.35 : 0.6 }), mTop = mat(top, { roughness: 0.9 }), mPants = mat(pants), mShoes = mat(shoes, { roughness: 0.5 });
+  const lathe = (pts) => new THREE.LatheGeometry(pts.map(([a, b]) => new THREE.Vector2(a, b)), 20);
+  add(lathe([[0, 0.9], [0.15, 0.92], [0.165, 1.0], [0.145, 1.12], [0.175, 1.3], [0.19, 1.4], [0.13, 1.47], [0.05, 1.5], [0, 1.5]]), mTop, 0, 0, 0).scale.set(1, 1, 0.62); // грудь — талия — плечи
+  add(lathe([[0, 0.86], [0.155, 0.88], [0.165, 0.98], [0.15, 1.04], [0, 1.04]]), mPants, 0, 0, 0).scale.set(1, 1, 0.66);
+  add(new THREE.CylinderGeometry(0.045, 0.05, 0.1, 10), mSkin, 0, 1.53, 0);
+  add(new THREE.SphereGeometry(0.105, 20, 14), mSkin, 0, 1.66, 0).scale.set(0.9, 1.12, 1);
+  if (hair) add(new THREE.SphereGeometry(0.11, 20, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), mat(hair, { roughness: 0.95 }), 0, 1.68, -0.008).scale.set(0.93, 1.12, 1.03);
+  for (const s of [1, -1]) {
+    const sw = walk * s;
+    const leg = new THREE.Group(); leg.position.set(0.085 * s, 0.9, 0); leg.rotation.x = -sw * 0.35; g.add(leg);
+    const th = new THREE.Mesh(new THREE.CapsuleGeometry(0.07, 0.3, 4, 10), mPants); th.position.y = -0.2; leg.add(th);
+    const knee = new THREE.Group(); knee.position.y = -0.42; knee.rotation.x = Math.max(0, sw) * 0.25; leg.add(knee);
+    const sh = new THREE.Mesh(new THREE.CapsuleGeometry(0.055, 0.32, 4, 10), mPants); sh.position.y = -0.2; knee.add(sh);
+    const shoe = new THREE.Mesh(new RoundedBoxGeometry(0.1, 0.08, 0.26, 2, 0.035), mShoes); shoe.position.set(0, -0.42, 0.05); knee.add(shoe);
+    const arm = new THREE.Group(); arm.position.set(0.2 * s, 1.43, 0); arm.rotation.set(box ? -0.9 : sw * 0.4, 0, 0.1 * s); g.add(arm);
+    const up = new THREE.Mesh(new THREE.CapsuleGeometry(0.048, 0.24, 4, 10), mTop); up.position.y = -0.16; arm.add(up);
+    const el = new THREE.Group(); el.position.y = -0.31; el.rotation.x = box ? -0.6 : -0.15; arm.add(el);
+    const fo = new THREE.Mesh(new THREE.CapsuleGeometry(0.04, 0.22, 4, 10), box ? mSkin : mTop); fo.position.y = -0.14; el.add(fo);
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), mSkin); hand.position.y = -0.3; hand.scale.set(0.8, 1.2, 0.6); el.add(hand);
+  }
+  if (box) add(new RoundedBoxGeometry(0.42, 0.3, 0.32, 2, 0.02), mat('#C49A6C', { roughness: 0.95 }), 0, 1.12, 0.36);
+  return g;
+}
+// курьер — первый человек во дворе (у ворот, у входа); остальные — в одежде, каждый третий — манекен
+const PEOPLE = [
+  () => human({ skin: '#D9A882', top: '#E36B2C', pants: '#3A3F48', shoes: '#2B2B2B', hair: '#1E1A17', walk: 1, box: true }),
+  (shirt) => human({ skin: '#E2B896', top: shirt, pants: '#2F3A4F', shoes: '#F2F2F2', hair: '#3B2A20' }),
+  () => human({ skin: '#E6E3DE', top: '#E6E3DE', pants: '#E6E3DE', shoes: '#D5D1CB', mannequin: true }),
+];
+
+// ---------- легковая машина: профиль сбоку (длина по z, высота по y), вытянут по ширине со скруглёнными краями ----------
+function car({ color, len = 4.5, wid = 1.8, prof, cabin, rails = false }) {
+  const g = new THREE.Group();
+  const paint = mat(color, { roughness: 0.28, metalness: 0.35 }), glass = mat('#1C2A3A', { roughness: 0.1, metalness: 0.6 }), dark = mat('#24272D', { roughness: 0.7 });
+  const end = (p) => p.slice(-2);
+  const extrude = (pts, w, m, bev) => {
+    const sh = new THREE.Shape();
+    sh.moveTo(...pts[0]);
+    for (const p of pts.slice(1)) p.length === 2 ? sh.lineTo(...p) : sh.quadraticCurveTo(...p);
+    const geo = new THREE.ExtrudeGeometry(sh, { depth: w - 2 * bev, bevelEnabled: true, bevelThickness: bev, bevelSize: bev, bevelSegments: 3, curveSegments: 10 });
+    geo.translate(0, 0, -(w - 2 * bev) / 2);
+    const o = new THREE.Mesh(geo, m); o.rotation.y = -Math.PI / 2; g.add(o);
+  };
+  extrude(prof, wid, paint, 0.1);
+  extrude(cabin, wid - 0.16, glass, 0.06);
+  const [c1, c2] = [end(cabin[1]), end(cabin[2])], top = Math.max(c1[1], c2[1]), rz = (c1[0] + c2[0]) / 2, rl = c1[0] - c2[0];
+  const roof = new THREE.Mesh(new RoundedBoxGeometry(wid - 0.18, 0.06, rl + 0.1, 2, 0.03), paint); roof.position.set(0, top + 0.03, rz); g.add(roof);
+  for (const sd of [-1, 1]) { const bp = new THREE.Mesh(new THREE.BoxGeometry(0.03, top - cabin[0][1], 0.1), paint); bp.position.set(sd * (wid / 2 - 0.08), (top + cabin[0][1]) / 2, rz + 0.1); g.add(bp); }
+  if (rails) for (const sd of [-1, 1]) { const r = new THREE.Mesh(new RoundedBoxGeometry(0.05, 0.05, rl * 0.85, 2, 0.02), dark); r.position.set(sd * (wid / 2 - 0.15), top + 0.09, rz); g.add(r); }
+  for (const [sx, sz] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) {
+    const w = new THREE.Group(); w.position.set(sx * (wid / 2 - 0.08), 0.34, sz * (len / 2 - 0.85)); w.rotation.z = Math.PI / 2; g.add(w);
+    w.add(new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.24, 20), mat('#1B1C1F', { roughness: 0.9 })));
+    w.add(new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.21, 0.25, 16), mat('#C9CED6', { roughness: 0.25, metalness: 0.8 })));
+  }
+  for (const sd of [-1, 1]) {
+    const hl = new THREE.Mesh(new RoundedBoxGeometry(0.42, 0.12, 0.08, 2, 0.04), mat('#F4F7FB', { emissive: '#FFF6DA', emissiveIntensity: 0.4, roughness: 0.2 })); hl.position.set(sd * (wid / 2 - 0.35), end(prof[2])[1] - 0.12, len / 2 + 0.02); g.add(hl);
+    const tl = new THREE.Mesh(new RoundedBoxGeometry(0.4, 0.1, 0.06, 2, 0.03), mat('#B3262B', { emissive: '#7A1014', emissiveIntensity: 0.4, roughness: 0.3 })); tl.position.set(sd * (wid / 2 - 0.3), end(prof[prof.length - 3])[1] - 0.12, -len / 2 - 0.02); g.add(tl);
+    const mr = new THREE.Mesh(new RoundedBoxGeometry(0.16, 0.1, 0.1, 2, 0.03), paint); mr.position.set(sd * (wid / 2 + 0.05), cabin[0][1] + 0.05, cabin[0][0] - 0.15); g.add(mr);
+  }
+  for (const zz of [len / 2 + 0.03, -len / 2 - 0.03]) { const b = new THREE.Mesh(new RoundedBoxGeometry(wid + 0.02, 0.14, 0.1, 2, 0.04), dark); b.position.set(0, 0.32, zz); g.add(b); }
+  return g;
+}
+// седан, кроссовер, купе — по очереди; точки [x, y] — прямая, [cx, cy, x, y] — изгиб
+const CARS = [
+  { prof: [[2.25, 0.28], [2.3, 0.55], [2.3, 0.74, 2.0, 0.78], [1.5, 0.84, 0.95, 0.86], [-1.6, 0.9], [-2.05, 0.92, -2.22, 0.82], [-2.32, 0.76, -2.3, 0.5], [-2.25, 0.28]],
+    cabin: [[0.95, 0.86], [0.55, 1.25, 0.0, 1.36], [-0.45, 1.42, -0.9, 1.38], [-1.45, 1.28, -1.6, 0.9]] },
+  { len: 4.4, wid: 1.85, rails: true, prof: [[2.2, 0.34], [2.25, 0.7], [2.25, 0.92, 1.9, 0.98], [1.4, 1.02, 1.0, 1.05], [-2.0, 1.08], [-2.22, 1.08, -2.22, 0.9], [-2.2, 0.34]],
+    cabin: [[1.0, 1.05], [0.55, 1.5, 0.2, 1.62], [-0.8, 1.68, -1.85, 1.64], [-2.02, 1.5, -2.0, 1.08]] },
+  { wid: 1.85, prof: [[2.3, 0.25], [2.35, 0.5], [2.35, 0.66, 2.0, 0.7], [1.4, 0.76, 0.6, 0.8], [-1.8, 0.84], [-2.25, 0.86, -2.3, 0.7], [-2.35, 0.55, -2.3, 0.4], [-2.25, 0.25]],
+    cabin: [[0.6, 0.8], [0.1, 1.12, -0.5, 1.18], [-1.0, 1.2, -1.4, 1.14], [-1.75, 1.0, -1.8, 0.84]] },
+];
+
+// люди и машины сцены: места — spec.extras (scenes.js)
+function extras(spec) {
+  const g = new THREE.Group();
+  let ci = 0, pi = 0;
+  const outdoor = (spec.ground || []).some((gr) => ROLE[String(gr.fill).toUpperCase()] === 'grass' || ROLE[String(gr.fill).toUpperCase()] === 'asphalt');
+  for (const e of spec.extras || []) {
+    let o;
+    if (e.kind === 'car') {
+      o = car({ color: e.color, ...CARS[ci++ % CARS.length] });
+      o.position.copy(V(e.axis === 'y' ? e.x + 0.9 : e.x + 2.1, e.axis === 'y' ? e.y + 2.1 : e.y + 0.9, 0.02));
+      if (e.axis === 'x') o.rotation.y = Math.PI / 2;
+    } else {
+      o = PEOPLE[outdoor && pi === 0 ? 0 : pi % 3 === 2 ? 2 : 1](e.shirt);
+      o.position.copy(V(e.x, e.y, 0));
+      o.rotation.y = 0.5 + pi * 1.3;
+      o.scale.setScalar(e.k || 1);
+      pi++;
+    }
+    o.traverse((m) => { if (m.isMesh) m.castShadow = m.receiveShadow = true; });
+    g.add(o);
+  }
   return g;
 }
 
@@ -78,13 +236,16 @@ class Stage {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping; // мягкий «фото»-свет для фактур
+    this.renderer.toneMappingExposure = 1.12;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.ov = Object.assign(document.createElement('div'), { className: 'sch__ov' });
     this.scene = new THREE.Scene();
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0xC9D6EE, 1.6));
-    this.sun = new THREE.DirectionalLight(0xffffff, 1.6);
+    this.sun = new THREE.DirectionalLight(0xffffff, 1.7);
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(2048, 2048);
+    this.sun.shadow.radius = 4;
     this.sun.shadow.bias = -0.0005;
     this.scene.add(this.sun, this.sun.target);
     this.cam = new THREE.OrthographicCamera(-1, 1, 1, -1, -500, 500);
@@ -126,7 +287,7 @@ class Stage {
     let li = 0;
     for (const g of spec.ground) {
       const [a, b, c, d] = g.r;
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(c - a, d - b), mat(g.fill));
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(c - a, d - b), matFor(g.fill, c - a, d - b, true));
       m.rotation.x = -Math.PI / 2;
       m.position.copy(V((a + c) / 2, (b + d) / 2, 0.002 * li++));
       m.receiveShadow = true;
@@ -143,24 +304,34 @@ class Stage {
     }
     for (const b of spec.boxes) this.group.add(box(b));
     for (const t of spec.trees || []) this.group.add(tree(t));
+    this.group.add(extras(spec));
 
     const cams = placeCams(spec.cams, n), sz = sizeFor(n);
-    const coneMat = new THREE.MeshBasicMaterial({ color: 0x1E6BE0, transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide });
+    const zoneMat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide });
+    const edgeMat = new THREE.LineBasicMaterial({ color: 0x1E6BE0, transparent: true, opacity: 0.55 });
     cams.forEach((c, i) => {
       const ray = coneRays(c, spec.cams, n);
-      const fan = [];
-      for (let k = 0; k < ray.length - 1; k++) fan.push(V(c.x, c.y, 0.05), V(ray[k][0], ray[k][1], 0.05), V(ray[k + 1][0], ray[k + 1][1], 0.05));
-      this.group.add(mesh(fan, coneMat));
-      for (const f of [ray[0], ray[ray.length - 1]]) {
-        const ln = new THREE.Line(new THREE.BufferGeometry().setFromPoints([V(c.x, c.y, c.z), V(f[0], f[1], 0.05)]),
-          new THREE.LineDashedMaterial({ color: 0x1E6BE0, dashSize: 0.2, gapSize: 0.15, transparent: true, opacity: 0.6 }));
-        ln.computeLineDistances();
-        this.group.add(ln);
+      // зона обзора — объём: пятно на полу (у камеры ярче) и полупрозрачная пирамида от объектива до края пятна
+      const eye = V(c.x, c.y, c.z), foot = V(c.x, c.y, 0.06), far = Math.max(...ray.map(([x, y]) => Math.hypot(x - c.x, y - c.y))) || 1;
+      const pos = [], alpha = [];
+      const tri = (p, q, r, a, b, d) => { pos.push(p, q, r); alpha.push(a, b, d); };
+      const fa = ([x, y]) => 0.3 - 0.2 * Math.hypot(x - c.x, y - c.y) / far;
+      for (let k = 0; k < ray.length - 1; k++) {
+        const p = V(ray[k][0], ray[k][1], 0.06), q = V(ray[k + 1][0], ray[k + 1][1], 0.06);
+        tri(foot, p, q, 0.3, fa(ray[k]), fa(ray[k + 1]));
+        tri(eye, p, q, 0.32, 0.03, 0.03);
       }
+      const r0 = V(ray[0][0], ray[0][1], 0.06), r1 = V(ray[ray.length - 1][0], ray[ray.length - 1][1], 0.06);
+      tri(eye, foot, r0, 0.25, 0.08, 0.03);
+      tri(eye, foot, r1, 0.25, 0.08, 0.03);
+      const zone = mesh(pos, zoneMat);
+      zone.geometry.setAttribute('color', new THREE.Float32BufferAttribute(alpha.flatMap((a) => [0.118, 0.42, 0.878, a]), 4));
+      this.group.add(zone);
+      for (const f of [r0, r1]) this.group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([eye, f]), edgeMat));
       // камера: корпус + объектив, смотрит по направлению и чуть вниз
       const body = new THREE.Group();
       const s = 0.55 + 0.45 * sz;
-      const hull = new THREE.Mesh(new THREE.BoxGeometry(0.22 * s, 0.22 * s, 0.6 * s), mat('#F4F6FA'));
+      const hull = new THREE.Mesh(new RoundedBoxGeometry(0.22 * s, 0.22 * s, 0.6 * s, 2, 0.066 * s), mat('#FFFFFF', { roughness: 0.4 }));
       hull.castShadow = true;
       const lens = new THREE.Mesh(new THREE.CircleGeometry(0.08 * s, 16), mat('#1B2333'));
       lens.position.z = 0.301 * s;
