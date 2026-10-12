@@ -479,7 +479,12 @@ function catalogDefaults() {
           L('Встроенный микрофон', 'Ішінде микрофоны бар'), L(`Ночная съёмка: ИК‑подсветка до ${ir}\u00a0м`, `Түнде түсіреді: ИҚ жарығы ${ir}\u00a0м-ге дейін`),
           L('Защита от пыли и воды: IP67', 'Шаң мен судан қорғалған: IP67'), L('Сжатие видео: H.265', 'Видео сығу: H.265')] });
     }
-    for (const ch of NVR_CH) {
+    // Hikvision на 4 камеры: одно фото на обе, цена «от» — Kaspi + 15% запаса; общая карточка «4 канала» не нужна
+    add('nvr', 'hik-nvr-4', { name: L('Регистратор Hikvision 4\u00a0канала', 'Hikvision 4 арналы регистраторы'),
+      spec: L('Для камер до 4\u00a0Мп · DS‑7104NI‑Q1(D)', '4\u00a0Мп‑ге дейінгі камераларға · DS‑7104NI‑Q1(D)'), price: 31815, from: true, pic: 'products/hikvision-nvr-4ch' });
+    add('nvr', 'hik-nvr-4-4k', { name: L('Регистратор Hikvision 4K, 4\u00a0канала', 'Hikvision 4K, 4 арналы регистраторы'),
+      spec: L('Для камер до 4K · DS‑7604NI‑Q1(E)', '4K‑ге дейінгі камераларға · DS‑7604NI‑Q1(E)'), price: 50209, from: true, pic: 'products/hikvision-nvr-4ch' });
+    for (const ch of NVR_CH.filter((n) => n !== 4)) {
       add('nvr', `nvr-${ch}`, { name: L(`${P.nvr.name} ${ch} ${plural(ch, 'канал', 'канала', 'каналов')}`, `${ch} арналы ${lc(t(P.nvr.name))}`),
         spec: L(`До ${ch} камер`, `${ch} камераға дейін`), price: P.nvr.prices[ch], pic: 'icons/nvr' });
     }
