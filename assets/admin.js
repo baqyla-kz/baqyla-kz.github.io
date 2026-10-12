@@ -517,6 +517,10 @@ function cardEditor(c) {
         <label class="f"><span>Подпись — одна строка о главном</span><input class="in" data-c="spec" maxlength="120" value="${esc(c.spec)}"></label>
         <label class="f"><span>Подпись по-казахски</span><input class="in" data-c="specKk" maxlength="120" value="${esc(c.specKk)}"></label>
       </div>
+      <div class="ce__row">
+        <label class="f"><span>Параметры — по одному в строке</span><textarea class="in" data-c="params" rows="4">${esc((c.params || []).join('\n'))}</textarea></label>
+        <label class="f"><span>Параметры по-казахски</span><textarea class="in" data-c="paramsKk" rows="4" placeholder="пусто — по словарю или по-русски">${esc((c.paramsKk || []).join('\n'))}</textarea></label>
+      </div>
       <label class="f"><span>Ссылка на товар (Kaspi)</span><input class="in" type="url" data-c="url" maxlength="400" value="${esc(c.url || '')}" placeholder="https://kaspi.kz/shop/p/… — пусто: карточка без ссылки"></label>
       <div class="ce__row ce__row--3">
         <label class="f"><span>Цена</span><span class="money"><input class="in in--num" type="number" min="0" step="1" inputmode="numeric" placeholder="по запросу" data-c="price" value="${hasPrice(c.price) ? c.price : ''}"></span></label>
@@ -553,7 +557,9 @@ $('#tabCatalog').addEventListener('input', (e) => {
   const k = e.target.dataset.c;
   if (!k || e.target.type === 'checkbox' || e.target.tagName === 'SELECT') return;
   const c = cardOf(e.target);
-  if (k === 'price') { const p = numOf(e.target); if (p === undefined) delete c.price; else c.price = Math.round(p); } else c[k] = e.target.value;
+  if (k === 'price') { const p = numOf(e.target); if (p === undefined) delete c.price; else c.price = Math.round(p); }
+  else if (k === 'params' || k === 'paramsKk') c[k] = e.target.value.split('\n').map((x) => x.trim()).filter(Boolean);
+  else c[k] = e.target.value;
   catChanged();
 });
 $('#tabCatalog').addEventListener('change', async (e) => {

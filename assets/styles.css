@@ -673,12 +673,21 @@ h1 {
 .eq__type[aria-pressed="true"] { background: var(--panel-2); color: var(--text); }
 .eq__type img { flex: none; width: 36px; height: 36px; object-fit: contain; }
 .eq__type i { margin-left: auto; font: 500 12px var(--f-mono); font-style: normal; color: var(--faint); }
-.eq__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.eq__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 18px; } /* раскрытые «Параметры» не растягивают соседей */
 @media (max-width: 1100px) { .eq__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .eq__tile { display: flex; flex-direction: column; overflow: hidden; background: #fff; border: 1px solid var(--line-soft); border-radius: 16px; }
-/* плитка со ссылкой на товар — поднимается при наведении, как карточки расчёта */
-.eq__tile--link { color: inherit; text-decoration: none; transition: transform .2s, border-color .2s; }
+/* плитка со ссылкой на товар: ссылка в названии растянута на всю плитку; поднимается при наведении, как карточки расчёта */
+.eq__tile--link { position: relative; transition: transform .2s, border-color .2s; }
 .eq__tile--link:hover { transform: translateY(-3px); border-color: #C9D1DB; }
+.eq__link { color: inherit; text-decoration: none; }
+.eq__link::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+/* «Параметры ⌄» — список раскрывается под ценой */
+.eq__tg { position: relative; display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 10px; padding: 10px 0 0; border: 0; border-top: 1px solid var(--line-soft); background: none; color: var(--signal); font: 600 14px var(--f-body); cursor: pointer; }
+.eq__tg svg { width: 18px; height: 18px; flex: none; transition: transform .2s; }
+.eq__tg[aria-expanded="true"] svg { transform: rotate(180deg); }
+.eq__tg[aria-expanded="false"] + .eq__params { display: none; }
+.eq__params { margin: 8px 0 0; padding: 0 0 0 18px; color: var(--muted); font-size: 13px; line-height: 1.4; }
+.eq__params li + li { margin-top: 4px; }
 .eq__ph { position: relative; aspect-ratio: 4 / 3.4; background: var(--panel-2); }
 /* картинка вписана по центру целиком: высокое фото не растягивает плитку */
 .eq__ph img { position: absolute; inset: 0; width: 60%; height: 60%; margin: auto; object-fit: contain; }

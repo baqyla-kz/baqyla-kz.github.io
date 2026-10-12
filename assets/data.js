@@ -422,8 +422,8 @@ function applySettings(v) {
 
 // ---------- каталог «Оборудование» ----------
 // Карточки правятся в админке (вкладка «Оборудование») → site_settings, ключ CATALOG_KEY: { cards: [карточка, …] }.
-// Карточка: { id, type (раздел из EQ_TYPES), name, nameKk, spec, specKk, price?, from, per, pic, url, hidden }.
-// url — ссылка на товар (Kaspi): есть — плитка открывает её в новой вкладке.
+// Карточка: { id, type (раздел из EQ_TYPES), name, nameKk, spec, specKk, price?, from, per, pic, url, params, paramsKk, hidden }.
+// url — ссылка на товар (Kaspi): есть — плитка открывает её в новой вкладке. params — строки под кнопкой «Параметры».
 // Текст по-казахски — своё поле; пустое — перевод по словарю KK, нет и там — по-русски. Нет цены — «по запросу».
 // Каталог ещё не сохраняли — карточки собираются из цен расчёта частного дома (catalogDefaults).
 const CATALOG_KEY = 'catalog';
@@ -436,6 +436,7 @@ const EQ_TYPES = [
 ];
 const EQ_PER = { month: 'в месяц', m: 'за метр' }; // после цены; на сайте — «в месяц» и «/ м»
 let CATALOG = null; // null — из админки ещё не сохраняли
+const cleanList = (a) => (Array.isArray(a) ? a.map((x) => cleanStr(x, '', 120)).filter(Boolean).slice(0, 12) : []);
 const urlOk = (u) => typeof u === 'string' && u.length <= 400 && /^https:\/\/[^\s<>"']+$/.test(u);
 
 function applyCatalog(v) {
@@ -452,6 +453,7 @@ function applyCatalog(v) {
       from: c.from === true, per: Object.prototype.hasOwnProperty.call(EQ_PER, c.per) ? c.per : '',
       pic: picOk(c.pic) ? c.pic : `icons/${EQ_TYPES.find((ty) => ty.id === c.type).ic}`,
       url: urlOk(c.url) ? c.url : '',
+      params: cleanList(c.params), paramsKk: cleanList(c.paramsKk),
       hidden: c.hidden === true,
     };
     const p = cleanNum(c.price);
@@ -468,12 +470,13 @@ function catalogDefaults() {
     const add = (type, id, o) => hasPrice(o.price) && out.push({ id, type, ...o });
     add('cam', 'cam-wifi', { name: t(P.camWifi.name), spec: L('Wi‑Fi, запись на карту в камере', 'Wi‑Fi, камерадағы картаға жазады'), price: P.camWifi.price, pic: 'products/ezviz-h3c',
       url: 'https://kaspi.kz/shop/p/ezviz-kamera-videonabljudenija-h3c-2k-3mp-rasshirenie-2304x1296-173026430/?c=750000000' });
-    add('cam', 'cam', { name: t(P.cam.name), spec: L('По кабелю, запись на регистратор', 'Кабельмен, регистраторға жазады'), price: P.cam.price, pic: 'icons/camera' });
-    add('cam', 'cam-talk', { name: t(P.camTalk.name), spec: L('Можно говорить через камеру', 'Камера арқылы сөйлесуге болады'), price: P.camTalk.price, pic: 'icons/camera' });
-    // ПРИМЕР из вайрфрейма: цены придуманные — поправить или удалить в админке
-    add('cam', 'cam-ptz', { name: L('Поворотная камера', 'Бұрылатын камера'), spec: L('Поворот и зум с телефона', 'Телефоннан бұрып, жақындатасыз'), price: 52000, pic: 'icons/camera' });
-    add('cam', 'cam-4mp', { name: L('Камера 4 Мп', 'Камера 4 Мп'), spec: L('Чётче видно лица и номера', 'Бет пен нөмір анығырақ көрінеді'), price: 27000, pic: 'icons/camera' });
-    add('cam', 'cam-lift', { name: L('Камера в лифт', 'Лифтке камера'), spec: L('Маленькая, антивандальная', 'Кішкентай, сындыруға төзімді'), price: 21000, pic: 'icons/camera' });
+    // Hikvision Dual Light (LIU): одно фото на все, цена «от» — Kaspi + 10% запаса
+    for (const [mp, model, price, ir] of [[2, 'DS-2CD1023G2-LIU', 23810, 30], [4, 'DS-2CD1043G2-LIU', 35130, 30], [6, 'DS-2CD1063G2-LIU', 41158, 40], [8, 'DS-2CD1083G2-LIU', 49292, 30]]) {
+      add('cam', `hik-${mp}mp`, { name: L(`Камера Hikvision ${mp}\u00a0Мп`, `Hikvision ${mp}\u00a0Мп камерасы`), spec: model, price, from: true, pic: 'products/hikvision-liu',
+        params: [L('Уличная, цилиндрическая', 'Көшеге арналған, цилиндр пішінді'), L('Подключение по кабелю (PoE)', 'Кабельмен қосылады (PoE)'),
+          L('Встроенный микрофон', 'Ішінде микрофоны бар'), L(`Ночная съёмка: ИК‑подсветка до ${ir}\u00a0м`, `Түнде түсіреді: ИҚ жарығы ${ir}\u00a0м-ге дейін`),
+          L('Защита от пыли и воды: IP67', 'Шаң мен судан қорғалған: IP67'), L('Сжатие видео: H.265', 'Видео сығу: H.265')] });
+    }
     for (const ch of NVR_CH) {
       add('nvr', `nvr-${ch}`, { name: L(`${P.nvr.name} ${ch} ${plural(ch, 'канал', 'канала', 'каналов')}`, `${ch} арналы ${lc(t(P.nvr.name))}`),
         spec: L(`До ${ch} камер`, `${ch} камераға дейін`), price: P.nvr.prices[ch], pic: 'icons/nvr' });
@@ -499,7 +502,7 @@ function catalogDefaults() {
     return out;
   };
   const ru = inLang('ru', build), kk = inLang('kk', build);
-  return ru.map((c, i) => ({ from: false, per: '', url: '', hidden: false, ...c, nameKk: kk[i].name, specKk: kk[i].spec }));
+  return ru.map((c, i) => ({ from: false, per: '', url: '', params: [], hidden: false, ...c, nameKk: kk[i].name, specKk: kk[i].spec, paramsKk: kk[i].params || [] }));
 }
 
 const catalogCards = () => CATALOG || catalogDefaults();
