@@ -451,7 +451,7 @@ const tooMany = (s) => { const c = counts(s); return Math.max(c.out, c.inn, c.li
 function canAdd(zone) {
   if (!zoneFull(state, zone)) return true;
   toast(L(`Больше ${PRICE.maxPerZone} камер ${{ out: 'снаружи', in: 'внутри', lift: 'в лифтах' }[zone]} посчитаем отдельно — напишите нам`,
-    `${{ out: 'Сыртқа', in: 'Ішке', lift: 'Лифттерге' }[zone]} ${PRICE.maxPerZone}-дан көп камераны бөлек есептейміз — бізге жазыңыз`));
+    `${{ out: 'Сыртта', in: 'Ішінде', lift: 'Лифттерде' }[zone]} ${PRICE.maxPerZone} камерадан көп болса, бөлек есептейміз — бізге жазыңыз`));
   return false;
 }
 
@@ -635,7 +635,7 @@ $('#lead').addEventListener('submit', async (ev) => {
   } catch (_) {
     btn.disabled = false;
     msg.className = 'lead__msg is-bad';
-    msg.textContent = L('Не получилось отправить. Напишите монтажнику в WhatsApp — кнопка ниже.', 'Жіберілмей қалды. Шеберге WhatsApp-қа жазыңыз — батырма төменде.');
+    msg.textContent = L('Не получилось отправить. Напишите монтажнику в WhatsApp — кнопка ниже.', 'Жіберілмей қалды. Төмендегі WhatsApp арқылы шеберге жазыңыз.');
   }
 });
 
