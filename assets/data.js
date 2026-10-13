@@ -504,10 +504,13 @@ function catalogDefaults() {
     add('hdd', 'sd', { name: t(P.sd.name), spec: L('Для Wi‑Fi камеры', 'Wi‑Fi камераға'), price: hasPrice(P.sd.price) ? P.sd.price : 6000, pic: 'icons/sd' }); // 6000 — пример из вайрфрейма
     const m = ADDON.monitor;
     add('more', 'monitor', { name: t(m.t), spec: t(m.d), price: m.price, from: !!m.from, pic: 'icons/monitor' });
-    // радиомост Dahua — готовый комплект для лифта, цена «от» — как на Kaspi
+    // радиомосты для лифта (Dahua, Hikvision — пара), цена «от» — как на Kaspi
     add('more', 'bridge', { name: L('Радиомост Dahua', 'Dahua радиомосты'), spec: L('Готовый комплект для лифта\u00a0· DH‑WB2‑60N‑I', 'Лифтке дайын жинақ\u00a0· DH‑WB2‑60N‑I'),
       price: 40486, from: true, pic: 'products/dahua-wb2',
       params: [L('Сигнал из лифта без кабеля', 'Лифттен сигналды кабельсіз жеткізеді'), L('Частота: 2,4\u00a0ГГц', 'Жиілігі: 2,4\u00a0ГГц'), L('Дальность: до 1\u00a0км', '1\u00a0км-ге дейін жеткізеді')] });
+    add('more', 'bridge-hik', { name: L('Радиомост Hikvision', 'Hikvision радиомосты'), spec: L('Комплект из 2\u00a0штук\u00a0· DS‑3WF0FA‑2N/O', '2 данадан жинақ\u00a0· DS‑3WF0FA‑2N/O'),
+      price: 41200, from: true, pic: 'products/hikvision-wf0fa',
+      params: [L('Сигнал из лифта без кабеля', 'Лифттен сигналды кабельсіз жеткізеді'), L('Частота: 2,4\u00a0ГГц', 'Жиілігі: 2,4\u00a0ГГц')] });
     add('more', 'switch', { name: L('Коммутатор PoE', 'PoE коммутатор'), spec: L('Питание и сеть по одному кабелю', 'Қуат пен интернет бір кабельмен'), price: 18000, pic: 'icons/switch' }); // пример из вайрфрейма
     add('more', 'router4g', { name: t(PRICE.router4g.name), spec: L('Если на объекте нет интернета', 'Интернет жоқ болса'), price: PRICE.router4g.price, per: 'month', pic: 'icons/router' });
     // материалы: одна позиция в разных группах (гермобокс и на улицу, и в лифт) — одной карточкой
