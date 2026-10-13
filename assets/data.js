@@ -494,9 +494,12 @@ function catalogDefaults() {
         name: L(`Регистратор Hikvision ${k4 ? '4K, ' : ''}${ch_(ch)}${poe ? ` + ${poe}\u00a0PoE` : ''}`, `Hikvision ${k4 ? '4K, ' : ''}${ch} арналы${poe ? ` + ${poe}\u00a0PoE` : ''} регистраторы`),
         spec: L(`Для камер до ${r}${m}`, `${r}‑ге дейінгі камераларға${mKk}`), price, from: true, pic: `products/hikvision-nvr-${ch >= 16 ? ch : 4}ch` });
     }
-    for (const tb of HDD_SIZES) {
-      const r = daysRange(storeDays({ tb, qty: 1 }, 4));
-      add('hdd', `hdd-${tb}`, { name: L(`${P.hdd.name} ${tb} ТБ`, `${tb} ТБ ${lc(t(P.hdd.name))}`), spec: L(`4 камеры пишут ${r.text}`, `4 камера ${r.text} жазады`), price: P.hdd.prices[tb], pic: 'icons/hdd' });
+    // диски WD Purple (для видеонаблюдения): цена «от» — как на Kaspi; общие карточки расчёта заменены ими. [ТБ, модель, цена, фото]
+    for (const [tb, model, price, pic] of [[0.5, 'WD5000PURX', 11992, '500gb'], [1, 'WD10PURZ', 36592, '1tb'], [2, 'WD20PURZ', 54999, '2tb'],
+      [3, 'WD30PURZ', 74999, '3tb'], [4, 'WD40PURZ', 83436, '4tb'], [8, 'WD80PURZ', 299999, '8tb']]) {
+      const r = daysRange(storeDays({ tb, qty: 1 }, 4)), size = tb < 1 ? `${tb * 1000}\u00a0ГБ` : `${tb}\u00a0ТБ`;
+      add('hdd', `wd-${pic}`, { name: L(`${P.hdd.name} WD Purple ${size}`, `WD Purple ${size} ${lc(t(P.hdd.name))}`),
+        spec: L(`4 камеры пишут ${r.text}\u00a0· ${model}`, `4 камера ${r.text} жазады\u00a0· ${model}`), price, from: true, pic: `products/wd-purple-${pic}` });
     }
     add('hdd', 'sd', { name: t(P.sd.name), spec: L('Для Wi‑Fi камеры', 'Wi‑Fi камераға'), price: hasPrice(P.sd.price) ? P.sd.price : 6000, pic: 'icons/sd' }); // 6000 — пример из вайрфрейма
     const m = ADDON.monitor;
