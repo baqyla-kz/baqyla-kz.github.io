@@ -22,7 +22,9 @@ function renderEquipment() {
   tabs.innerHTML = types.map((ty) => `<button type="button" class="eq__type" data-type="${ty.id}" aria-pressed="${ty.id === eqCur}">`
     + `<img src="assets/icons/${ty.ic}.webp" alt=""><span>${soft(t(ty.t))}</span><i>${cards.filter((c) => c.type === ty.id).length}</i></button>`).join('');
   // есть ссылка на товар — название-ссылка растянута на всю плитку (новая вкладка); кнопка «Параметры» — поверх неё
-  document.querySelector('#eqGrid').innerHTML = cards.filter((c) => c.type === eqCur).map((c) => {
+  // в разделе — от самой дешёвой к самой дорогой; без цены («по запросу») — в конце, равные — в порядке из админки
+  const byPrice = (c) => (hasPrice(c.price) ? c.price : Infinity);
+  document.querySelector('#eqGrid').innerHTML = cards.filter((c) => c.type === eqCur).sort((a, b) => byPrice(a) - byPrice(b)).map((c) => {
     const name = cardText(c, 'name'), params = c.params || [];
     return `
     <article class="eq__tile${c.url ? ' eq__tile--link' : ''}">
