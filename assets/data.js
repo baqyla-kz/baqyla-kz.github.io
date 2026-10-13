@@ -552,6 +552,24 @@ function catalogDefaults() {
       add('cam', id, { name: L(`Камера HiWatch ${mp}\u00a0Мп`, `HiWatch ${mp}\u00a0Мп камерасы`), spec: model, price, from: true,
         pic: `products/hiwatch-${pic}`, params: [`${HW[where]}, ${HW[form]}`, ...extra, ...(form === 'cube' ? hwCube : hwBase)] });
     }
+    // Tiandy уличные проводные, цена «от» — Kaspi + 15% запаса. Общие: PoE, микрофон, ИК до 30 м, IP67, H.265.
+    // Фото по моделям; у TC‑C34QN — как у TC‑C321N, у TC‑C35WS — как у TC‑C38WS (та же линейка)
+    {
+      const form = { cyl: L('Уличная, цилиндрическая', 'Көшеге арналған, цилиндр пішінді'), turret: L('Уличная, турель', 'Көшеге арналған, турель') };
+      const color = L('Цветная картинка ночью', 'Түнде түрлі түсті сурет');
+      for (const [id, mp, model, price, f, pic, extra, ir = 30] of [
+        ['tiandy-c321n', 2, 'TC‑C321N I3/E/Y', 10235, 'cyl', 'c321n', []],
+        ['tiandy-c32wp', 2, 'TC‑C32WP I5W ColorMaker', 25300, 'cyl', 'c32wp', [color, L('Слот для карты microSD до 512\u00a0ГБ', 'microSD картасына орын, 512\u00a0ГБ-қа дейін')], 50],
+        ['tiandy-c34qn', 4, 'TC‑C34QN I3/E/Y', 25300, 'cyl', 'c321n', []],
+        ['tiandy-c34qn-cm', 4, 'TC‑C34QN ColorMaker', 32200, 'cyl', 'c321n', [color]],
+        ['tiandy-c34hn', 4, 'TC‑C34HN I3/E/Y', 45414, 'turret', 'c34hn', []],
+        ['tiandy-c35ws', 5, 'TC‑C35WS I5W/E/Y', 67781, 'cyl', 'c38ws', [L('Тёплая подсветка', 'Жылы түсті жарық')], 50],
+        ['tiandy-c38ws', 8, 'TC‑C38WS I5/E/Y/M', 96267, 'cyl', 'c38ws', [L('Разрешение: 4K', 'Ажыратымдылығы: 4K'), L('Металлический корпус', 'Металл корпус')], 50]]) {
+        add('cam', id, { name: L(`Камера Tiandy ${mp}\u00a0Мп`, `Tiandy ${mp}\u00a0Мп камерасы`), spec: model, price, from: true, pic: `products/tiandy-${pic}`,
+          params: [form[f], ...extra, L('PoE: питание по одному кабелю', 'PoE: қуат бір кабельмен'), L('Встроенный микрофон', 'Ішінде микрофоны бар'),
+            L(`ИК‑подсветка до ${ir}\u00a0м`, `ИҚ жарығы ${ir}\u00a0м-ге дейін`), L('Защита от пыли и воды: IP67', 'Шаң мен судан қорғалған: IP67'), L('Сжатие H.265', 'Видео сығымдау: H.265')] });
+      }
+    }
     // регистраторы Hikvision: цена «от» — Kaspi + 15% запаса; фото — одно на 4 и 8 каналов, своё у 16- и 32-канальных. 4K на 8 камер — ставим 16-канальный.
     // [каналы, PoE-портов, камеры до (4 Мп / 4K / 12 Мп), модель, цена, дисков]; общие карточки расчёта заменены ими
     const ch_ = (n) => `${n}\u00a0${plural(n, 'канал', 'канала', 'каналов')}`;
