@@ -472,6 +472,30 @@ function catalogDefaults() {
       url: 'https://kaspi.kz/shop/p/ezviz-kamera-videonabljudenija-h3c-2k-3mp-rasshirenie-2304x1296-173026430/?c=750000000',
       params: [L('Подключение по Wi‑Fi', 'Wi‑Fi арқылы қосылады'), L('Разрешение: 3\u00a0Мп', 'Ажыратымдылығы: 3\u00a0Мп'),
         L('Ночная съёмка: ИК‑подсветка до 30\u00a0м', 'Түнде түсіреді: ИҚ жарығы 30\u00a0м-ге дейін')] });
+    // Wi‑Fi камеры Hikvision, цена «от» — Kaspi + 15% запаса; фото по виду корпуса. Параметры: где → особое → общие (динамик, microSD, Hik‑Connect)
+    {
+      const ir = (m) => (m ? L(`ИК‑подсветка до ${m}\u00a0м`, `ИҚ жарығы ${m}\u00a0м-ге дейін`) : L('ИК‑подсветка', 'ИҚ жарығы бар'));
+      const wifi = L('Подключение по Wi‑Fi', 'Wi‑Fi арқылы қосылады'), wifiPoe = L('Wi‑Fi и PoE', 'Wi‑Fi және PoE');
+      const rj = L('Есть разъём RJ45: можно подключить кабелем', 'RJ45 ұясы бар: кабельмен де қосуға болады'), ip66 = L('Защита от пыли и воды: IP66', 'Шаң мен судан қорғалған: IP66');
+      const turn = L('Поворачивается', 'Бұрылады'), color = L('Цветная картинка ночью (ИК + белый свет)', 'Түнде түрлі түсті сурет (ИҚ + ақ жарық)');
+      const kind = { ball: [L('Для помещений', 'Үй ішіне'), L('Комнатная', 'Бөлмелік')], cube: [L('Для помещений, куб', 'Үй ішіне, куб пішінді'), L('Куб', 'Куб')],
+        cyl: [L('Уличная, цилиндрическая', 'Көшеге арналған, цилиндр пішінді'), L('Цилиндр', 'Цилиндр')], ptz: [L('Уличная, поворотная', 'Көшеге арналған, бұрылатын'), L('Поворотная', 'Бұрылатын')] };
+      // [Мп, модель, цена, вид, особое, microSD до, ГБ]
+      for (const [mp, model, price, k, extra, sd = 512] of [
+        [2, 'DS‑2CV2Q21G1‑IDW', 20986, 'ball', [wifi, ir(10)]],
+        [4, 'DS‑2CD2443G2‑IW', 27201, 'cube', [wifiPoe, ir(10)]],
+        [2, 'DS‑2CD2423G2‑IW', 29866, 'cube', [wifiPoe, ir()]],
+        [2, 'DS‑2CV2021G2‑IDW', 25339, 'cyl', [wifi, rj, ip66, ir(30)]],
+        [4, 'DS‑2CV2041G2‑IDW', 31532, 'cyl', [wifi, rj, ip66, ir(30)]],
+        [2, 'DS‑2DE2C200IWG/W', 29008, 'ptz', [wifi, L('Поворот на 345°', 'Бұрылу: 345°'), color]],
+        [4, 'DS‑2DE2C400IWG/W', 33777, 'ptz', [wifi, turn, color]],
+        [4, 'DS‑2DE2C400MWG/W', 40562, 'ptz', [wifi, turn, L('Свет включается при движении', 'Қозғалыс болса, жарық жанады'), ir()], 256]]) {
+        add('cam', `hik-wifi-${model.replace(/[^A-Z0-9]/gi, '').toLowerCase()}`, { name: L(`Wi‑Fi камера Hikvision ${mp}\u00a0Мп`, `Hikvision ${mp}\u00a0Мп Wi‑Fi камерасы`),
+          spec: L(`${kind[k][1]}\u00a0· ${model}`, `${kind[k][1]}\u00a0· ${model}`), price, from: true, pic: `products/hik-wifi-${k}`,
+          params: [kind[k][0], ...extra, L('Микрофон и динамик: можно говорить через камеру', 'Микрофон мен динамик бар: камера арқылы сөйлесуге болады'),
+            L(`Слот для карты microSD до ${sd}\u00a0ГБ`, `microSD картасына орын, ${sd}\u00a0ГБ-қа дейін`), L('Приложение Hik‑Connect', 'Hik‑Connect қосымшасы')] });
+      }
+    }
     // Hikvision Dual Light (LIU): одно фото на все, цена «от» — Kaspi + 10% запаса
     for (const [mp, model, price, ir] of [[2, 'DS-2CD1023G2-LIU', 23810, 30], [4, 'DS-2CD1043G2-LIU', 35130, 30], [6, 'DS-2CD1063G2-LIU', 41158, 40], [8, 'DS-2CD1083G2-LIU', 49292, 30]]) {
       add('cam', `hik-${mp}mp`, { name: L(`Камера Hikvision ${mp}\u00a0Мп`, `Hikvision ${mp}\u00a0Мп камерасы`), spec: model, price, from: true, pic: 'products/hikvision-liu',
