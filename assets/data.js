@@ -510,6 +510,14 @@ function catalogDefaults() {
         price, from: true, pic: 'products/hik-4g-ptz', params: [ptz, g4, ...extra] });
       }
     }
+    // мини‑поворотная Hikvision без зума, цена «от» — Kaspi + 15% запаса; microSD у модели до 512 ГБ (у серии — до 256)
+    add('cam', 'hik-mini-ptz-6mp', { name: L('Поворотная камера Hikvision 6\u00a0Мп', 'Hikvision 6\u00a0Мп бұрылатын камерасы'),
+      spec: L('Мини, без зума\u00a0· DS‑2DE2C600MWG‑E', 'Шағын, зумсыз\u00a0· DS‑2DE2C600MWG‑E'), price: 72956, from: true, pic: 'products/hik-mini-ptz',
+      params: [L('Поворот и наклон с телефона (Hik‑Connect)', 'Телефоннан бұрып, еңкейтесіз (Hik‑Connect)'),
+        L('Микрофон и динамик: можно говорить через камеру', 'Микрофон мен динамик бар: камера арқылы сөйлесуге болады'),
+        L('Цветная картинка ночью (ИК + белый свет до 30\u00a0м)', 'Түнде түрлі түсті сурет (ИҚ + ақ жарық, 30\u00a0м-ге дейін)'),
+        L('Питание по PoE или от 12\u00a0В', 'Қуат: PoE немесе 12\u00a0В'), L('Защита от пыли и воды: IP66', 'Шаң мен судан қорғалған: IP66'),
+        L('Слот для карты microSD до 512\u00a0ГБ', 'microSD картасына орын, 512\u00a0ГБ-қа дейін'), L('Сжатие H.265+', 'Видео сығымдау: H.265+')] });
     // Hikvision Dual Light (LIU): одно фото на все, цена «от» — Kaspi + 10% запаса
     for (const [mp, model, price, ir] of [[2, 'DS-2CD1023G2-LIU', 23810, 30], [4, 'DS-2CD1043G2-LIU', 35130, 30], [6, 'DS-2CD1063G2-LIU', 41158, 40], [8, 'DS-2CD1083G2-LIU', 49292, 30]]) {
       add('cam', `hik-${mp}mp`, { name: L(`Камера Hikvision ${mp}\u00a0Мп`, `Hikvision ${mp}\u00a0Мп камерасы`), spec: model, price, from: true, pic: 'products/hikvision-liu',
