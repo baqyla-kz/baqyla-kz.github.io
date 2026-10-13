@@ -496,6 +496,20 @@ function catalogDefaults() {
             L(`Слот для карты microSD до ${sd}\u00a0ГБ`, `microSD картасына орын, ${sd}\u00a0ГБ-қа дейін`), L('Приложение Hik‑Connect', 'Hik‑Connect қосымшасы')] });
       }
     }
+    // 4G камеры Hikvision (SIM‑карта, интернет на объекте не нужен), цена «от» — Kaspi + 15% запаса; одно фото на все
+    {
+      const ptz = L('Уличная, поворотная', 'Көшеге арналған, бұрылатын'), color = L('Цветная картинка ночью', 'Түнде түрлі түсті сурет');
+      const g4 = L('4G: работает от SIM‑карты, интернет на объекте не нужен', '4G: SIM‑картамен жұмыс істейді, объектіде интернет керек емес');
+      for (const [id, mp, model, price, solar, extra] of [
+        ['hik-4g-2mp', 2, 'DS‑2DE2C200MWG‑4G', 32997, false, [L('Распознаёт людей и машины', 'Адамдар мен көліктерді ажыратады'), color]],
+        ['hik-4g-4mp', 4, 'DS‑2DE2C400MWG‑4G', 45247, false, [color]],
+        ['hik-4g-solar', 2, 'DS‑2DE2C200IWG‑K/\u200b4G/\u200bC09S20', 195305, true, [L('Без розетки: солнечная панель и аккумулятор', 'Розетка керек емес: күн панелі мен аккумулятор')]]]) {
+        add('cam', id, { name: solar ? L(`4G камера Hikvision ${mp}\u00a0Мп на солнечной батарее`, `Күн батареясымен Hikvision ${mp}\u00a0Мп 4G камерасы`)
+          : L(`4G камера Hikvision ${mp}\u00a0Мп`, `Hikvision ${mp}\u00a0Мп 4G камерасы`),
+        spec: solar ? L(`Комплект\u00a0· ${model}`, `Жинақ\u00a0· ${model}`) : L(`Поворотная\u00a0· ${model}`, `Бұрылатын\u00a0· ${model}`),
+        price, from: true, pic: 'products/hik-4g-ptz', params: [ptz, g4, ...extra] });
+      }
+    }
     // Hikvision Dual Light (LIU): одно фото на все, цена «от» — Kaspi + 10% запаса
     for (const [mp, model, price, ir] of [[2, 'DS-2CD1023G2-LIU', 23810, 30], [4, 'DS-2CD1043G2-LIU', 35130, 30], [6, 'DS-2CD1063G2-LIU', 41158, 40], [8, 'DS-2CD1083G2-LIU', 49292, 30]]) {
       add('cam', `hik-${mp}mp`, { name: L(`Камера Hikvision ${mp}\u00a0Мп`, `Hikvision ${mp}\u00a0Мп камерасы`), spec: model, price, from: true, pic: 'products/hikvision-liu',
