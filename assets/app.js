@@ -220,10 +220,17 @@ $('#schTg').addEventListener('click', () => {
   if (schOff && $('#wiz').getBoundingClientRect().top < 0) requestAnimationFrame(() => $('#wiz').scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth' }));
 });
 
+// для аналитики (track.js): что посчитал клиент
+function calcInfo() {
+  const e = estimate(state);
+  return { obj: state.plan, cams: e.c.total, out: e.c.out, inn: e.c.inn, lift: e.c.lift, sum: e.total, draft: e.draft ? 1 : 0, rec: state.store || '', net: state.net || '' };
+}
+
 function go(step) {
   step = Math.max(0, Math.min(STEPS.length - 1, step));
   if (step !== state.step) schOff = false;
   if (step < state.step) resetAfter(step);
+  if (step > state.step) track('step', step === STEPS.length - 1 ? { n: step, ...calcInfo() } : { n: step, obj: state.plan });
   state.step = step;
   renderStep(true);
   renderSmeta();
@@ -237,6 +244,7 @@ $('#stepBody').addEventListener('click', (e) => {
     const id = o.closest('[data-group]').dataset.group;
     const raw = o.dataset.v;
     (id === 'more' ? s.more : s).pick(isNaN(+raw) ? raw : +raw);
+    if (state.step === 0) track('obj', { obj: state.plan });
     state.picked[state.step] = s.ready ? s.ready() : true;
     // перерисовать карточки (подписи зависят от выбора), выбранную — с анимацией
     renderStep();
@@ -441,6 +449,7 @@ $('#adds').addEventListener('click', (e) => {
   // порядок — как в каталоге, чтобы смета не прыгала
   state.addons = Object.keys(ADDON).filter((k) => (k === id ? on : state.addons.includes(k)));
   b.setAttribute('aria-pressed', on);
+  if (on) track('addon', { id });
   renderSmeta();
 });
 
@@ -593,6 +602,7 @@ const phoneDigits = (v) => {
 $('#review').addEventListener('click', () => {
   $('#review').hidden = true;
   $('#lead').hidden = false;
+  track('lead_open');
   $('#leadPhone').focus();
 });
 
@@ -628,11 +638,13 @@ $('#lead').addEventListener('submit', async (ev) => {
     });
     if (!r.ok) throw new Error(r.status);
     const res = await r.json();
+    track('lead', { num: res.number || 0, again: res.repeat ? 1 : 0, ...calcInfo(), add: state.addons.join('.') });
     msg.className = 'lead__msg is-ok';
     msg.textContent = L(`Заявка${res.number ? ` №${res.number}` : ''} отправлена — перезвоним в ближайшее время.`, `Өтінім${res.number ? ` №${res.number}` : ''} жіберілді — жақын арада хабарласамыз.`);
     $('#leadPhone').disabled = true;
     btn.hidden = true;
   } catch (_) {
+    track('lead_err');
     btn.disabled = false;
     msg.className = 'lead__msg is-bad';
     msg.textContent = L('Не получилось отправить. Напишите монтажнику в WhatsApp — кнопка ниже.', 'Жіберілмей қалды. Төмендегі WhatsApp арқылы шеберге жазыңыз.');
@@ -647,6 +659,7 @@ $('#pdf').addEventListener('click', async () => {
   b.classList.add('is-busy');
   const label = b.lastChild.textContent;
   b.lastChild.textContent = L('Готовим PDF…', 'PDF дайындап жатырмыз…');
+  track('pdf', calcInfo());
   try {
     const { downloadPdf } = await import('./pdf.js');
     const e = estimate(state);
@@ -797,7 +810,8 @@ loadSettings(() => {
   renderSmeta();
 });
 
-applyUrl() || load();
+if (applyUrl()) track('step', { n: STEPS.length - 1, via: 'link', ...calcInfo() }); // по ссылке комплекта или «Поделиться» — сразу на схеме
+else load();
 renderStep();
 renderSmeta();
 schemeHint();

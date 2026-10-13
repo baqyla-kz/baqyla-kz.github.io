@@ -794,6 +794,7 @@ const TABS = { // вкладка → блок, заголовок, адрес
   calc: { box: '#tabCalc', title: 'Настройки расчёта', hash: '' },
   catalog: { box: '#tabCatalog', title: 'Оборудование', hash: '#equipment' },
   kits: { box: '#tabKits', title: 'Комплекты', hash: '#kits' },
+  stats: { box: '#tabStats', title: 'Аналитика', hash: '#stats' }, // admin-stats.js
 };
 function showTab(name) {
   tab = name;
@@ -801,13 +802,16 @@ function showTab(name) {
   $$('#admTabs [data-tab]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.tab === name));
   $('#admT').textContent = TABS[name].title;
   history.replaceState(null, '', TABS[name].hash || location.pathname);
+  $('#bar').hidden = name === 'stats'; // в аналитике сохранять нечего
   stamp();
+  if (name === 'stats' && typeof statsOpen === 'function') statsOpen();
 }
 $('#admTabs').addEventListener('click', (e) => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); });
 
 // ---------- загрузка и сохранение ----------
 
 function stamp() {
+  if (tab === 'stats') { $('#stamp').textContent = ''; return; }
   const row = rows[tab];
   $('#stamp').textContent = row && row.updated_at ? `Изменено ${fmtDate(row.updated_at)}${row.updated_by ? ` · ${loginOf(row.updated_by)}` : ''}`
     : { calc: 'Ещё не сохранялось — показаны значения по умолчанию', catalog: 'Ещё не сохранялось — карточки собраны из цен расчёта', kits: 'Ещё не сохранялось — показаны комплекты по умолчанию' }[tab];
@@ -818,6 +822,7 @@ async function openEditor() {
   $('#editor').hidden = false;
   $('#bar').hidden = false;
   $('#who').textContent = `Вход: ${loginOf(session.email)}`;
+  try { localStorage.setItem('baqyla-no-track', '1'); } catch (_) { /* приватный режим */ } // свои заходы — не в аналитику (track.js)
   msg('');
   rows = {};
   try {

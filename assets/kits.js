@@ -58,7 +58,7 @@ function renderKits() {
       </div>
       <div class="kit__foot">
         <div><small>${L('Под ключ', 'Толық орнатумен')}</small><div class="kit__price">${!own && e.draft ? `<small>${t('от')} </small>` : ''}${fmt(own ? k.price : e.total)}</div></div>
-        <a class="btn btn--primary" href="${kitHref(k)}">${L('Открыть в расчёте', 'Есептеуде ашу')}</a>
+        <a class="btn btn--primary" href="${kitHref(k)}" data-kit="${k.id}">${L('Открыть в расчёте', 'Есептеуде ашу')}</a>
       </div>
     </article>`;
   }).join('');
@@ -97,6 +97,8 @@ addEventListener('resize', () => { clearTimeout(kitResize); kitResize = setTimeo
 addEventListener('scheme3d-ready', drawKitSchemes);
 
 document.querySelector('#kitsList').addEventListener('click', (e) => {
+  const open = e.target.closest('[data-kit]'), k = open && kitList().find((x) => x.id === open.dataset.kit);
+  if (k) track('kit', { id: k.id, name: k.name, plan: k.plan });
   const b = e.target.closest('.kit__tg');
   if (b) b.setAttribute('aria-expanded', b.getAttribute('aria-expanded') !== 'true');
 });
@@ -105,6 +107,7 @@ document.querySelector('#kitTypes').addEventListener('click', (e) => {
   const b = e.target.closest('[data-type]');
   if (!b || b.dataset.type === kitCur) return;
   kitCur = b.dataset.type;
+  track('kit_tab', { type: kitCur });
   history.replaceState(null, '', kitCur === 'all' ? location.pathname : `#${kitCur}`);
   renderKits();
 });

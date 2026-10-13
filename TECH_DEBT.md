@@ -14,6 +14,12 @@
       (запрет вызывать снимки базы с сайта) — сейчас они только на этом компьютере.
 - [ ] Уведомление команде о новой заявке (Telegram/WhatsApp) — сейчас заявку видно, только если открыть CRM.
 
+## Аналитика
+- [ ] Выполнить `baqyla-crm/supabase/site-analytics.sql` в Supabase → SQL Editor (после `site-security.sql`) — до этого сайт
+      не записывает посещения, во вкладке «Аналитика» есть только заявки из CRM.
+- [ ] Закоммитить `site-analytics.sql` в `baqyla-crm`.
+- [ ] Ссылки в рекламе и в профилях (Instagram, 2ГИС) — с `?utm_source=…&utm_campaign=…`, чтобы источник был виден точно.
+
 ## Поиск (Google, Яндекс)
 - [ ] Google Search Console: добавить `https://baqyla-kz.github.io/` (тип «Префикс URL»), подтвердить права
       (файл или метатег положить на сайт), отправить `https://baqyla-kz.github.io/sitemap.xml`.
