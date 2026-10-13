@@ -501,7 +501,12 @@ function catalogDefaults() {
       add('hdd', `wd-${pic}`, { name: L(`${P.hdd.name} WD Purple ${size}`, `WD Purple ${size} ${lc(t(P.hdd.name))}`),
         spec: L(`4 камеры пишут ${r.text}\u00a0· ${model}`, `4 камера ${r.text} жазады\u00a0· ${model}`), price, from: true, pic: `products/wd-purple-${pic}` });
     }
-    add('hdd', 'sd', { name: t(P.sd.name), spec: L('Для Wi‑Fi камеры', 'Wi‑Fi камераға'), price: hasPrice(P.sd.price) ? P.sd.price : 6000, pic: 'icons/sd' }); // 6000 — пример из вайрфрейма
+    // карты microSD: одна иконка на все, цена «от» — как на Kaspi. [ГБ, марка, модель, цена]
+    for (const [gb, brand, model, price] of [[16, 'Hoco', '', 4949], [32, '', '565448UT7', 3100], [64, 'Kingston', 'SDCS2/64GB', 8493]]) {
+      const b = brand ? `${brand} ` : '', m = model ? `\u00a0· ${model}` : '';
+      add('hdd', `sd-${gb}`, { name: L(`Карта памяти ${b}microSD ${gb}\u00a0ГБ`, `${b}microSD ${gb}\u00a0ГБ жад картасы`),
+        spec: L(`Для Wi‑Fi камеры${m}`, `Wi‑Fi камераға${m}`), price, from: true, pic: 'icons/sd' });
+    }
     const m = ADDON.monitor;
     add('more', 'monitor', { name: t(m.t), spec: t(m.d), price: m.price, from: !!m.from, pic: 'icons/monitor' });
     // радиомосты для лифта (Dahua, Hikvision — пара), цена «от» — как на Kaspi
