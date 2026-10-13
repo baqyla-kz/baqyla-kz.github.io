@@ -76,16 +76,29 @@ async function stLoad() {
 async function stLoadLeads() {
   const acts = await stFetchAll(`records?collection=eq.activities&data->>text=like.${encodeURIComponent('Заявка с сайта*')}&select=data`);
   if (!acts) return;
-  const ids = [...new Set(acts.map((a) => a.data.dealId).filter(Boolean))];
-  const deals = {};
-  for (let i = 0; i < ids.length; i += 80) {
-    const rows = await stFetchAll(`records?collection=eq.deals&id=in.(${ids.slice(i, i + 80).join(',')})&select=id,data`);
-    (rows || []).forEach((r) => { deals[r.id] = r.data; });
-  }
+  const deals = await stById('deals', acts.map((a) => a.data.dealId));
+  const dl = Object.values(deals);
+  const ests = await stById('estimates', dl.map((d) => d.estimateId));
+  const clients = await stById('clients', acts.map((a) => a.data.clientId).concat(dl.map((d) => d.clientId)));
   const set = await stFetchAll('records?collection=eq.settings&id=eq.main&select=data');
   const custom = set && set[0] && set[0].data && set[0].data.stages;
   stStages = Array.isArray(custom) && custom.length ? custom.map((s) => [s.key, s.label]) : ST_STAGES;
-  stLeads = acts.map((a) => ({ t: new Date(a.data.at), deal: deals[a.data.dealId] || null })).sort((a, b) => b.t - a.t);
+  stLeads = acts.map((a) => {
+    const deal = deals[a.data.dealId] || null;
+    return { t: new Date(a.data.at), deal, est: deal && ests[deal.estimateId] || null, client: clients[(deal && deal.clientId) || a.data.clientId] || null,
+      note: String(a.data.text || '').replace(/^Заявка с сайта \(калькулятор\)\.\s*/, '') };
+  }).sort((a, b) => b.t - a.t);
+}
+
+// записи CRM по id (по 80 за запрос): { id: data }
+async function stById(collection, ids) {
+  ids = [...new Set(ids.filter(Boolean))];
+  const out = {};
+  for (let i = 0; i < ids.length; i += 80) {
+    const rows = await stFetchAll(`records?collection=eq.${collection}&id=in.(${ids.slice(i, i + 80).join(',')})&select=id,data`);
+    (rows || []).forEach((r) => { out[r.id] = r.data; });
+  }
+  return out;
 }
 
 // ---------- подсчёт ----------
@@ -389,8 +402,40 @@ function stCrm(leads, prevLeads) {
       <div><h3>Где сейчас заявки</h3>${bars((stStages || ST_STAGES).map(([k]) => ({ l: label(k), v: st[k] || 0 })).concat(st[''] ? [{ l: 'Сделку удалили', v: st[''] }] : []), { total: leads.length, empty: 'Заявок за период нет' })}</div>
       <div><h3>Причины отказа</h3>${bars(topOf(reasons).map(([l, v]) => ({ l, v })), { empty: 'Отказов нет' })}</div>
     </div>
-    <h3>Последние заявки</h3>${table(['Когда', 'Заявка', 'Сумма', 'Этап'],
-      leads.slice(0, 10).map((l) => [fmtD(l.t), stEsc(l.deal ? l.deal.title : '—'), l.deal && +l.deal.amount ? fmt(l.deal.amount) : '—', stEsc(label(stage(l)))]), 'Заявок за период нет', [false, false, true, false], ' tb--leads')}`;
+    <h3>Все заявки</h3>${stLeadList(leads, (l) => label(stage(l)), fmtD)}`;
+}
+
+const stPhone = (p) => String(p || '').replace(/^\+7(\d{3})(\d{3})(\d{2})(\d{2})$/, '+7 $1 $2 $3 $4');
+
+// строка — коротко; по нажатию — клиент с телефоном, что посчитал на сайте и смета, как сейчас в CRM
+function stLeadList(leads, stageOf, fmtD) {
+  if (!leads.length) return '<p class="st__empty">Заявок за период нет</p>';
+  return `<div class="ld"><div class="ld__h"><span>Когда</span><span>Заявка</span><span>Телефон</span><span class="n">Сумма</span><span>Этап</span></div>
+    ${leads.map((l) => {
+      const d = l.deal || {}, est = l.est, phone = (est && est.phone) || (l.client && l.client.phone) || '';
+      // заметка site_lead — строки расчёта через «. »: «Объект: …. Камер: …»
+      const calc = (l.note || (est && est.note) || '').split(/\.\s+(?=[А-ЯЁA-Z«])/).map((s) => s.trim().replace(/\.$/, '')).filter(Boolean);
+      const lines = est && Array.isArray(est.lines) ? est.lines : [];
+      const sub = lines.reduce((a, x) => a + (+x.qty || 0) * (+x.price || 0), 0), disc = est ? +est.discount || 0 : 0;
+      return `<details class="ld__i"><summary>
+          <span class="ld__t">${fmtD(l.t)}</span>
+          <span class="ld__n">${stEsc(d.title || '—')}</span>
+          <span class="ld__p">${stEsc(stPhone(phone) || '—')}</span>
+          <span class="ld__s n">${+d.amount ? fmt(d.amount) : '—'}</span>
+          <span class="ld__st">${stEsc(stageOf(l))}</span>
+        </summary><div class="ld__b">
+          <p class="ld__c"><b>${stEsc((l.client && l.client.name) || 'Клиент')}</b>${phone ? ` <a href="tel:${stEsc(phone)}">${stEsc(stPhone(phone))}</a>
+            <a href="https://wa.me/${phone.replace(/\D/g, '')}" target="_blank" rel="noopener">WhatsApp</a>` : ''}</p>
+          ${calc.length ? `<h4>Расчёт клиента</h4><dl class="ld__calc">${calc.map((s) => {
+            const i = s.indexOf(': ');
+            return i > 0 ? `<dt>${stEsc(s.slice(0, i))}</dt><dd>${stEsc(s.slice(i + 2))}</dd>` : `<dd class="ld__w">${stEsc(s)}</dd>`;
+          }).join('')}</dl>` : ''}
+          ${est ? `<h4>Смета №${stEsc(est.number)}</h4>${table(['Позиция', 'Кол-во', 'Цена', 'Сумма'],
+            lines.map((x) => [stEsc(x.name), `${num(+x.qty || 0)} ${stEsc(x.unit || '')}`, fmt(+x.price || 0), fmt((+x.qty || 0) * (+x.price || 0))])
+              .concat(disc ? [['Скидка', '', `${num(disc)}%`, `−${fmt(sub * disc / 100)}`]] : [])
+              .concat([['<b>Итого</b>', '', '', `<b>${fmt(sub * (1 - disc / 100))}</b>`]]), 'Позиций нет', [false, true, true, true], ' tb--est')}` : '<p class="st__empty">Смету удалили в CRM</p>'}
+        </div></details>`;
+    }).join('')}</div>`;
 }
 
 // ---------- подсказки по наведению и касанию ----------
